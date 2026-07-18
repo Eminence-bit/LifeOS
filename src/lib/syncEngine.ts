@@ -405,14 +405,15 @@ class SyncEngine {
     }
 
     private setupSubscriptions() {
-        if (!supabase || !this.userId) return;
+        const client = supabase;
+        if (!client || !this.userId) return;
 
         // Subscribe to planning updates
         usePlanningStore.subscribe(async (state) => {
             if (this.isPulling) return;
             // Upsert tasks
             for (const task of state.tasks) {
-                await supabase.from('tasks').upsert({
+                await client.from('tasks').upsert({
                     id: task.id,
                     profile_id: this.userId,
                     title: task.title,
@@ -427,7 +428,7 @@ class SyncEngine {
             }
             // events
             for (const event of state.events) {
-                await supabase.from('events').upsert({
+                await client.from('events').upsert({
                     id: event.id,
                     profile_id: this.userId,
                     title: event.title,
@@ -445,7 +446,7 @@ class SyncEngine {
         // Subscribe to settings updates
         useSettingsStore.subscribe(async (state) => {
             if (this.isPulling) return;
-            await supabase.from('settings').upsert({
+            await client.from('settings').upsert({
                 id: this.userId,
                 theme: state.settings.theme,
                 currency: state.settings.currency,
@@ -456,7 +457,7 @@ class SyncEngine {
             });
 
             if (state.settings.userProfile) {
-                await supabase.from('profiles').upsert({
+                await client.from('profiles').upsert({
                     id: this.userId,
                     name: state.settings.userProfile.name,
                     email: state.settings.userProfile.email,
@@ -470,7 +471,7 @@ class SyncEngine {
         useFinanceStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const expense of state.expenses) {
-                await supabase.from('expenses').upsert({
+                await client.from('expenses').upsert({
                     id: expense.id,
                     profile_id: this.userId,
                     title: expense.title,
@@ -482,7 +483,7 @@ class SyncEngine {
                 });
             }
             for (const budget of state.budgets) {
-                await supabase.from('budgets').upsert({
+                await client.from('budgets').upsert({
                     id: budget.id,
                     profile_id: this.userId,
                     category: budget.category,
@@ -496,7 +497,7 @@ class SyncEngine {
         useFoodStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const item of state.inventory) {
-                await supabase.from('inventory_items').upsert({
+                await client.from('inventory_items').upsert({
                     id: item.id,
                     profile_id: this.userId,
                     name: item.name,
@@ -509,7 +510,7 @@ class SyncEngine {
                 });
             }
             for (const item of state.shoppingList) {
-                await supabase.from('shopping_items').upsert({
+                await client.from('shopping_items').upsert({
                     id: item.id,
                     profile_id: this.userId,
                     name: item.name,
@@ -524,7 +525,7 @@ class SyncEngine {
         useHealthStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const intake of state.waterIntakes) {
-                await supabase.from('water_intakes').upsert({
+                await client.from('water_intakes').upsert({
                     id: intake.id,
                     profile_id: this.userId,
                     date: intake.date,
@@ -537,7 +538,7 @@ class SyncEngine {
         useLearningStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const topic of state.topics) {
-                await supabase.from('learning_topics').upsert({
+                await client.from('learning_topics').upsert({
                     id: topic.id,
                     profile_id: this.userId,
                     name: topic.name,
@@ -554,7 +555,7 @@ class SyncEngine {
         useCareerStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const job of state.applications) {
-                await supabase.from('job_applications').upsert({
+                await client.from('job_applications').upsert({
                     id: job.id,
                     profile_id: this.userId,
                     company: job.company,
@@ -575,7 +576,7 @@ class SyncEngine {
         useDocumentsStore.subscribe(async (state) => {
             if (this.isPulling) return;
             for (const doc of state.documents) {
-                await supabase.from('documents').upsert({
+                await client.from('documents').upsert({
                     id: doc.id,
                     profile_id: this.userId,
                     title: doc.title,

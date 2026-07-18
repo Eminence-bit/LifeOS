@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Document, DocumentStatus } from '@/types';
 import { createBaseEntity, now, daysUntil } from '@/lib/utils';
 
-const deriveStatus = (doc: Omit<Document, 'status'>): DocumentStatus => {
+const deriveStatus = (doc: { expiryDate?: string }): DocumentStatus => {
     if (!doc.expiryDate) return 'valid';
     const days = daysUntil(doc.expiryDate);
     if (days < 0) return 'expired';

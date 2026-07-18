@@ -361,8 +361,8 @@ export function DashboardPage() {
             const reasons = [];
             // Reasons why this dinner fits the dashboard's intelligent coaching philosophy
             if (recipeInfo) {
-                if (recipeInfo.protein && recipeInfo.protein >= 25) reasons.push('✓ High protein target matched');
-                if (recipeInfo.calories && recipeInfo.calories < 650) reasons.push('✓ Under calories target limit');
+                if (recipeInfo.nutrition && recipeInfo.nutrition.protein && recipeInfo.nutrition.protein >= 25) reasons.push('✓ High protein target matched');
+                if (recipeInfo.nutrition && recipeInfo.nutrition.calories && recipeInfo.nutrition.calories < 650) reasons.push('✓ Under calories target limit');
                 if ((recipeInfo.prepTime || 0) + (recipeInfo.cookTime || 0) <= 25) reasons.push('✓ 15-minute quick prep time');
             } else {
                 reasons.push('✓ Quick home cooked meal option');
@@ -778,7 +778,7 @@ export function DashboardPage() {
                                     pending: { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' },
                                     locked: { text: '🔒', color: 'var(--accent-red)', bg: 'rgba(239, 68, 68, 0.1)', border: 'var(--accent-red)' },
                                     future: { text: '⏰', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' }
-                                }[m.status];
+                                }[m.status as 'done' | 'progress' | 'pending' | 'locked' | 'future'] || { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' };
 
                                 return (
                                     <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'center', position: 'relative' }}>

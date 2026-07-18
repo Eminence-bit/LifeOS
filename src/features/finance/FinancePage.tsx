@@ -239,10 +239,10 @@ export function FinancePage() {
                         {categoryData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={200}>
                                 <RechartsPie>
-                                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
                                         {categoryData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10 }} formatter={(v: number) => formatCurrency(v, settings.currency)} />
+                                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10 }} formatter={(v: any) => formatCurrency(Number(v || 0), settings.currency)} />
                                 </RechartsPie>
                             </ResponsiveContainer>
                         ) : <div className="empty-state" style={{ padding: '40px 0' }}><PieChart size={24} color="var(--text-muted)" /><p>No spending data</p></div>}
@@ -406,7 +406,7 @@ export function FinancePage() {
                         <BarChart data={barData}>
                             <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v: number) => formatCurrency(v, settings.currency)} />
+                            <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v: any) => formatCurrency(Number(v || 0), settings.currency)} />
                             <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} name="Income" />
                             <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
                         </BarChart>
