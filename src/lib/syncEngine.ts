@@ -7,6 +7,7 @@ import { useLearningStore } from '@/store/learningStore';
 import { useCareerStore } from '@/store/careerStore';
 import { useDocumentsStore } from '@/store/documentsStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthStore } from '@/store/authStore';
 
 class SyncEngine {
     private isInitialized = false;
@@ -19,12 +20,16 @@ class SyncEngine {
 
         // Monitor Auth state changes
         supabase.auth.onAuthStateChange(async (event, session) => {
+            useAuthStore.getState().setSession(session);
+
             if (session?.user) {
                 this.userId = session.user.id;
                 await this.pullFromCloud();
                 this.setupSubscriptions();
             } else {
                 this.userId = null;
+                // If user logged out of Supabase auth, reset Session state
+                useAuthStore.getState().setSession(null);
             }
         });
     }

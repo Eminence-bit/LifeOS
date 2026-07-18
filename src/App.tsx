@@ -11,11 +11,19 @@ import { CareerPage } from '@/features/career/CareerPage';
 import { DocumentsPage } from '@/features/documents/DocumentsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { syncEngine } from '@/lib/syncEngine';
+import { useAuthStore } from '@/store/authStore';
+import { AuthPage } from '@/features/auth/AuthPage';
 
 export function App() {
+  const { isAuthenticated } = useAuthStore();
+
   useEffect(() => {
     syncEngine.initialize();
   }, []);
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
 
   return (
     <BrowserRouter>

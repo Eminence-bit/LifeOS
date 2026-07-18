@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Settings, Moon, Sun, Globe, Bell, Save, User } from 'lucide-react';
+import { Settings, Moon, Sun, Globe, Bell, Save, User, LogOut, Shield } from 'lucide-react';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthStore } from '@/store/authStore';
 
 const AVATAR_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4'];
 
 export function SettingsPage() {
     const { settings, updateSettings } = useSettingsStore();
     const [saved, setSaved] = useState(false);
+    const { signOut, isSupabaseConfigured } = useAuthStore();
 
     const profile = settings.userProfile || { name: 'John Doe', email: 'john.doe@example.com', avatarColor: '#7c3aed', bio: '' };
 
@@ -223,7 +225,7 @@ export function SettingsPage() {
             </div>
 
             {/* About */}
-            <div className="card" style={{ padding: 24, marginBottom: 24 }}>
+            <div className="card" style={{ padding: 24, marginBottom: 16 }}>
                 <h3 style={{ fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Settings size={18} /> About Life OS
                 </h3>
@@ -232,13 +234,32 @@ export function SettingsPage() {
                         <span className="text-muted">Version</span><span>1.0.0 MVP</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span className="text-muted">Storage</span><span>Local (localStorage)</span>
+                        <span className="text-muted">Storage</span><span>{isSupabaseConfigured ? 'Supabase Sync Active' : 'Local (localStorage)'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span className="text-muted">Cloud Sync</span><span className="text-muted">Coming soon</span>
+                        <span className="text-muted">Status</span><span>{isSupabaseConfigured ? 'Cloud Connected' : 'Offline Mode'}</span>
                     </div>
                 </div>
             </div>
+
+            {/* Account Settings */}
+            {isSupabaseConfigured && (
+                <div className="card" style={{ padding: 24, marginBottom: 24, border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                    <h3 style={{ fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-red)' }}>
+                        <Shield size={18} /> Account Security
+                    </h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+                        Signed in as **{settings.userProfile?.email || 'authenticated user'}**. Wiping workspace local state will log you out cleanly.
+                    </p>
+                    <button
+                        className="btn"
+                        onClick={signOut}
+                        style={{ width: '100%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', border: '1px solid rgba(239, 68, 68, 0.2)', gap: 8 }}
+                    >
+                        <LogOut size={14} /> Sign Out & Clear Workspace
+                    </button>
+                </div>
+            )}
 
             <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSave}>
                 {saved ? <>✓ Settings Saved</> : <><Save size={16} />Save Settings</>}
