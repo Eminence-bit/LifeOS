@@ -21,7 +21,7 @@ export function DashboardPage() {
     const todayVal = todayStr();
 
     // ── Store Selectors ──
-    const { tasks, updateTask, events } = usePlanningStore();
+    const { tasks, updateTask, events, goals } = usePlanningStore();
     const { expenses, incomes, budgets, savingsGoals } = useFinanceStore();
     const { inventory, shoppingList, mealPlan, recipes, addShoppingItem } = useFoodStore();
     const { workoutLogs, workoutPlans, waterIntakes, addWaterIntake } = useHealthStore();
@@ -377,15 +377,17 @@ export function DashboardPage() {
 
     // Roadmap Milestones vertical flow formatting
     const milestones = useMemo(() => {
-        const list = [
-            { label: '🇮🇳 Graduate portfolio', status: 'done', desc: 'Completed successfully' },
-            { label: '🇩🇪 German B2 Language', status: 'progress', desc: '65% Complete' },
-            { label: '✈ Relocation visa', status: 'pending', desc: 'Awaiting language completion' },
-            { label: '💼 Ausbildung Contract', status: 'locked', desc: 'Prerequisite German B2 required' },
-            { label: '🏡 Apartment lease', status: 'future', desc: 'Move timeline horizon' }
-        ];
-        return list;
-    }, []);
+        if (!goals || goals.length === 0) {
+            return [
+                { label: 'No milestones configured', status: 'pending' as const, desc: 'Create goals in the planning tab to populate timeline.' }
+            ];
+        }
+        return goals.map(g => ({
+            label: g.title,
+            status: g.progress === 100 ? ('done' as const) : g.progress > 0 ? ('progress' as const) : ('pending' as const),
+            desc: `${g.progress}% Complete${g.targetDate ? ` • Target: ${g.targetDate}` : ''}`
+        }));
+    }, [goals]);
 
     // Today's schedule events
     const todayEvents = useMemo(() => {

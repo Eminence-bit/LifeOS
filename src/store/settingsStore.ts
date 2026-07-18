@@ -22,10 +22,10 @@ const defaultSettings: Settings = {
         workout: true,
     },
     userProfile: {
-        name: 'John Doe',
-        email: 'john.doe@example.com',
+        name: 'Guest User',
+        email: 'guest@example.com',
         avatarColor: '#7c3aed',
-        bio: 'Productivity enthusiast & life hacker.',
+        bio: 'Local offline workspace.',
     },
     quickNotes: '',
 };

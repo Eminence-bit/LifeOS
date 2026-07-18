@@ -10,7 +10,7 @@ export function SettingsPage() {
     const [saved, setSaved] = useState(false);
     const { signOut, isSupabaseConfigured } = useAuthStore();
 
-    const profile = settings.userProfile || { name: 'John Doe', email: 'john.doe@example.com', avatarColor: '#7c3aed', bio: '' };
+    const profile = settings.userProfile || { name: 'Guest User', email: 'guest@example.com', avatarColor: '#7c3aed', bio: 'Local offline workspace.' };
 
     const updateProfile = (updates: Partial<typeof profile>) => {
         updateSettings({
