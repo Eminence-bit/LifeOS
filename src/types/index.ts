@@ -15,6 +15,8 @@ export interface UserProfile {
 // ── Settings ──────────────────────────────────────────────────
 export interface Settings extends BaseEntity {
     theme: 'dark' | 'light';
+    themeStyle?: 'cozy-earth' | 'slate-neutral' | 'cyber-neon' | 'fresh-vitality';
+    disableDynamicAccents?: boolean;
     currency: string;
     timezone: string;
     weekStartsOn: 0 | 1;

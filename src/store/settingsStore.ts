@@ -11,6 +11,8 @@ interface SettingsState {
 const defaultSettings: Settings = {
     ...createBaseEntity(),
     theme: 'dark',
+    themeStyle: 'cozy-earth',
+    disableDynamicAccents: false,
     currency: 'EUR',
     timezone: 'Europe/Berlin',
     weekStartsOn: 1,

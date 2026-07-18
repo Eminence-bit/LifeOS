@@ -34,6 +34,44 @@ export function AppShell({ children }: AppShellProps) {
     const location = useLocation();
     const { settings } = useSettingsStore();
 
+    // Context theme updater
+    React.useEffect(() => {
+        if (settings.disableDynamicAccents) {
+            document.documentElement.setAttribute('data-feature', 'default');
+            return;
+        }
+        const path = location.pathname;
+        let featureStr = 'default';
+        if (path === '/') featureStr = 'dashboard';
+        else if (path.startsWith('/planning')) featureStr = 'planning';
+        else if (path.startsWith('/finance')) featureStr = 'finance';
+        else if (path.startsWith('/food')) featureStr = 'food';
+        else if (path.startsWith('/health')) featureStr = 'health';
+        else if (path.startsWith('/learning')) featureStr = 'learning';
+        else if (path.startsWith('/career')) featureStr = 'career';
+        else if (path.startsWith('/documents')) featureStr = 'documents';
+        else if (path.startsWith('/settings')) featureStr = 'settings';
+
+        document.documentElement.setAttribute('data-feature', featureStr);
+    }, [location.pathname, settings.disableDynamicAccents]);
+
+    // Theme style attribute updater
+    React.useEffect(() => {
+        const style = settings.themeStyle || 'cozy-earth';
+        document.documentElement.setAttribute('data-theme-style', style);
+    }, [settings.themeStyle]);
+
+    // Theme mode attribute updater (dark/light)
+    React.useEffect(() => {
+        const mode = settings.theme || 'dark';
+        document.documentElement.setAttribute('data-theme', mode);
+        if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [settings.theme]);
+
     // Global keyboard shortcut
     React.useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -191,7 +229,7 @@ export function AppShell({ children }: AppShellProps) {
                         }}
                         title="Profile Settings"
                     >
-                        {settings.userProfile?.name ? getInitials(settings.userProfile.name) : 'JD'}
+                        {settings.userProfile?.name ? getInitials(settings.userProfile.name) : 'GU'}
                     </NavLink>
                 </header>
 

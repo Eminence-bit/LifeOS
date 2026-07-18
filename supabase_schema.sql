@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE TABLE IF NOT EXISTS public.settings (
     id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     theme TEXT DEFAULT 'dark',
+    theme_style TEXT DEFAULT 'cozy-earth',
+    disable_dynamic_accents BOOLEAN DEFAULT false,
     currency TEXT DEFAULT 'INR',
     timezone TEXT DEFAULT 'Asia/Kolkata',
     week_starts_on INTEGER DEFAULT 1,

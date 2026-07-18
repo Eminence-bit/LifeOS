@@ -14,6 +14,8 @@ export const profiles = pgTable('profiles', {
 export const settings = pgTable('settings', {
     id: uuid('id').primaryKey().references(() => profiles.id, { onDelete: 'cascade' }),
     theme: text('theme').default('dark'),
+    themeStyle: text('theme_style').default('cozy-earth'),
+    disableDynamicAccents: boolean('disable_dynamic_accents').default(false),
     currency: text('currency').default('INR'),
     timezone: text('timezone').default('Asia/Kolkata'),
     weekStartsOn: integer('week_starts_on').default(1),

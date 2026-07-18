@@ -49,6 +49,8 @@ class SyncEngine {
                     settings: {
                         id: dbSettings.id,
                         theme: dbSettings.theme,
+                        themeStyle: dbSettings.theme_style || 'cozy-earth',
+                        disableDynamicAccents: dbSettings.disable_dynamic_accents ?? false,
                         currency: dbSettings.currency,
                         timezone: dbSettings.timezone,
                         weekStartsOn: dbSettings.week_starts_on,
@@ -454,6 +456,8 @@ class SyncEngine {
             await client.from('settings').upsert({
                 id: this.userId,
                 theme: state.settings.theme,
+                theme_style: state.settings.themeStyle,
+                disable_dynamic_accents: state.settings.disableDynamicAccents,
                 currency: state.settings.currency,
                 timezone: state.settings.timezone,
                 week_starts_on: state.settings.weekStartsOn,

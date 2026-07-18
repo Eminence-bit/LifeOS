@@ -125,18 +125,60 @@ export function SettingsPage() {
                     {settings.theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
                     Appearance
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                        <div style={{ fontWeight: 500 }}>Theme</div>
-                        <div className="text-sm text-muted">Choose between dark and light mode</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ fontWeight: 500 }}>Theme Mode</div>
+                            <div className="text-sm text-muted">Choose between dark and light mode</div>
+                        </div>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleThemeToggle}
+                            style={{ minWidth: 100 }}
+                        >
+                            {settings.theme === 'dark' ? <><Sun size={16} />Light</> : <><Moon size={16} />Dark</>}
+                        </button>
                     </div>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={handleThemeToggle}
-                        style={{ minWidth: 100 }}
-                    >
-                        {settings.theme === 'dark' ? <><Sun size={16} />Light</> : <><Moon size={16} />Dark</>}
-                    </button>
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                        <label className="label">Theme Color Accent Palette</label>
+                        <select
+                            className="input"
+                            value={settings.themeStyle || 'cozy-earth'}
+                            onChange={e => updateSettings({ themeStyle: e.target.value as any })}
+                            style={{ marginTop: 4 }}
+                        >
+                            <option value="cozy-earth">Cozy Earth & Forest (Warm Clay / Calm Gold)</option>
+                            <option value="fresh-vitality">Fresh Vitality (Organic Deep Mint / Sky Blue)</option>
+                            <option value="slate-neutral">Slate Neutral (Minimalist Obsidian / Silver)</option>
+                            <option value="cyber-neon">Cyber Neon (Dark Blue Theme / Vibrant Neon)</option>
+                        </select>
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontWeight: 500 }}>Disable Dynamic Accents</div>
+                            <div className="text-sm text-muted">Keep highlights and icons consistent with the theme style instead of route-specific colors</div>
+                        </div>
+                        <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={settings.disableDynamicAccents || false}
+                                onChange={e => updateSettings({ disableDynamicAccents: e.target.checked })}
+                                style={{ opacity: 0, width: 0, height: 0 }}
+                            />
+                            <span style={{
+                                position: 'absolute', inset: 0, borderRadius: 999,
+                                background: settings.disableDynamicAccents ? 'var(--accent-primary)' : 'var(--border-strong)',
+                                transition: 'background 0.2s ease',
+                            }}>
+                                <span style={{
+                                    position: 'absolute', left: settings.disableDynamicAccents ? 22 : 2, top: 2,
+                                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                                    transition: 'left 0.2s ease',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                }} />
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
