@@ -3,7 +3,7 @@ import { Plus, Trash2, ShoppingCart, Apple, ChefHat, CalendarDays, Edit2, Check 
 import { useFoodStore } from '@/store/foodStore';
 import { todayStr } from '@/lib/utils';
 import { format, startOfWeek, addDays } from 'date-fns';
-import type { MealType, RecipeIngredient } from '@/types';
+import type { MealType, RecipeIngredient, InventoryItem, Recipe } from '@/types';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 const MEAL_ICONS: Record<string, string> = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' };
@@ -40,6 +40,61 @@ function AddInventoryModal({ onClose }: { onClose: () => void }) {
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
                         <button type="submit" className="btn btn-primary">Add Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ── Edit Inventory Item Modal ─────────────────────────────────────
+function EditInventoryModal({ item, onClose }: { item: InventoryItem; onClose: () => void }) {
+    const { updateInventoryItem } = useFoodStore();
+    const [form, setForm] = useState({
+        name: item.name,
+        quantity: item.quantity.toString(),
+        unit: item.unit,
+        minQuantity: item.minQuantity.toString(),
+        store: item.store || '',
+        expiryDate: item.expiryDate || '',
+        category: item.category || ''
+    });
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.name || !form.quantity) return;
+        updateInventoryItem(item.id, {
+            name: form.name,
+            quantity: parseFloat(form.quantity),
+            unit: form.unit,
+            minQuantity: parseFloat(form.minQuantity || '0'),
+            store: form.store || undefined,
+            expiryDate: form.expiryDate || undefined,
+            category: form.category || undefined
+        });
+        onClose();
+    };
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Inventory Item</h3>
+                <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Eggs" required /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Quantity *</label><input className="input" type="number" min="0" step="any" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} required /></div>
+                        <div><label className="label">Unit</label>
+                            <select className="input" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}>
+                                {['g', 'kg', 'ml', 'L', 'pcs', 'pack', 'can', 'bag', 'cup', 'tbsp', 'tsp'].map(u => <option key={u} value={u}>{u}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="label">Min Qty</label><input className="input" type="number" min="0" step="any" value={form.minQuantity} onChange={e => setForm({ ...form, minQuantity: e.target.value })} placeholder="0" /></div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Store</label><input className="input" value={form.store} onChange={e => setForm({ ...form, store: e.target.value })} placeholder="e.g. Aldi, Lidl" /></div>
+                        <div><label className="label">Expiry Date</label><input className="input" type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} /></div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -146,6 +201,118 @@ function AddRecipeModal({ onClose }: { onClose: () => void }) {
         </div>
     );
 }
+
+// ── Edit Recipe Modal ─────────────────────────────────────────────
+function EditRecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) {
+    const { updateRecipe, inventory } = useFoodStore();
+    const [form, setForm] = useState({
+        title: recipe.title,
+        description: recipe.description || '',
+        prepTime: recipe.prepTime || 15,
+        cookTime: recipe.cookTime || 15,
+        servings: recipe.servings || 2,
+        category: recipe.category || '',
+        instructions: recipe.instructions?.length ? [...recipe.instructions] : [''],
+        ingredients: recipe.ingredients?.length
+            ? recipe.ingredients.map((i: any) => ({ ...i }))
+            : [{ name: '', quantity: 1, unit: 'g', inventoryItemId: '' }] as RecipeIngredient[],
+        calories: recipe.nutrition?.calories?.toString() || '',
+        protein: recipe.nutrition?.protein?.toString() || '',
+        carbs: recipe.nutrition?.carbs?.toString() || '',
+        fat: recipe.nutrition?.fat?.toString() || '',
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.title) return;
+        updateRecipe(recipe.id, {
+            title: form.title,
+            description: form.description || undefined,
+            prepTime: form.prepTime,
+            cookTime: form.cookTime,
+            servings: form.servings,
+            category: form.category || undefined,
+            ingredients: form.ingredients.filter(i => i.name),
+            instructions: form.instructions.filter(i => i),
+            nutrition: form.calories || form.protein || form.carbs || form.fat ? {
+                calories: form.calories ? parseFloat(form.calories) : undefined,
+                protein: form.protein ? parseFloat(form.protein) : undefined,
+                carbs: form.carbs ? parseFloat(form.carbs) : undefined,
+                fat: form.fat ? parseFloat(form.fat) : undefined,
+            } : undefined,
+        });
+        onClose();
+    };
+
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Recipe</h3>
+                <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Recipe name" required /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Prep (min)</label><input className="input" type="number" min="0" value={form.prepTime} onChange={e => setForm({ ...form, prepTime: +e.target.value })} /></div>
+                        <div><label className="label">Cook (min)</label><input className="input" type="number" min="0" value={form.cookTime} onChange={e => setForm({ ...form, cookTime: +e.target.value })} /></div>
+                        <div><label className="label">Servings</label><input className="input" type="number" min="1" value={form.servings} onChange={e => setForm({ ...form, servings: +e.target.value })} /></div>
+                    </div>
+                    {/* Nutrition stats */}
+                    <div>
+                        <label className="label">Nutrition (per serving)</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                            <div><input className="input" type="number" min="0" placeholder="Calories (kcal)" value={form.calories} onChange={e => setForm({ ...form, calories: e.target.value })} /></div>
+                            <div><input className="input" type="number" min="0" placeholder="Protein (g)" value={form.protein} onChange={e => setForm({ ...form, protein: e.target.value })} /></div>
+                            <div><input className="input" type="number" min="0" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm({ ...form, carbs: e.target.value })} /></div>
+                            <div><input className="input" type="number" min="0" placeholder="Fat (g)" value={form.fat} onChange={e => setForm({ ...form, fat: e.target.value })} /></div>
+                        </div>
+                    </div>
+                    {/* Ingredients */}
+                    <div>
+                        <label className="label">Ingredients</label>
+                        {form.ingredients.map((ing, idx) => (
+                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: 8, marginBottom: 6 }}>
+                                <input className="input" placeholder="Name" value={ing.name} onChange={e => {
+                                    const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], name: e.target.value }; setForm({ ...form, ingredients: upd });
+                                }} />
+                                <input className="input" type="number" min="0" step="any" placeholder="Qty" value={ing.quantity} onChange={e => {
+                                    const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], quantity: +e.target.value }; setForm({ ...form, ingredients: upd });
+                                }} />
+                                <select className="input" value={ing.unit} onChange={e => {
+                                    const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], unit: e.target.value }; setForm({ ...form, ingredients: upd });
+                                }}>{['g', 'kg', 'ml', 'L', 'pcs', 'cup', 'tbsp', 'tsp'].map(u => <option key={u} value={u}>{u}</option>)}</select>
+                                <select className="input" value={ing.inventoryItemId} onChange={e => {
+                                    const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], inventoryItemId: e.target.value, name: upd[idx].name || (inventory.find(i => i.id === e.target.value)?.name ?? '') }; setForm({ ...form, ingredients: upd });
+                                }}>
+                                    <option value="">Link to inventory…</option>
+                                    {inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                </select>
+                            </div>
+                        ))}
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, ingredients: [...form.ingredients, { name: '', quantity: 1, unit: 'g', inventoryItemId: '' }] })}><Plus size={14} />Add ingredient</button>
+                    </div>
+                    {/* Instructions */}
+                    <div>
+                        <label className="label">Instructions</label>
+                        {form.instructions.map((step, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', minWidth: 20 }}>{idx + 1}.</span>
+                                <input className="input" value={step} onChange={e => {
+                                    const upd = [...form.instructions]; upd[idx] = e.target.value; setForm({ ...form, instructions: upd });
+                                }} placeholder={`Step ${idx + 1}`} />
+                            </div>
+                        ))}
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, instructions: [...form.instructions, ''] })}><Plus size={14} />Add step</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+
 
 // ── Meal Planner ─────────────────────────────────────────────────
 function MealPlannerView() {
@@ -307,6 +474,8 @@ function MealPlannerView() {
 export function FoodPage() {
     const [tab, setTab] = useState<'inventory' | 'shopping' | 'recipes' | 'planner'>('inventory');
     const [modal, setModal] = useState<'inventory' | 'recipe' | null>(null);
+    const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+    const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
     const { inventory, recipes, shoppingList, deleteInventoryItem, deleteRecipe, toggleShoppingItem, removeShoppingItem, addShoppingItem, refreshShoppingList } = useFoodStore();
 
     return (
@@ -334,7 +503,7 @@ export function FoodPage() {
                 <div className="card" style={{ padding: 20 }}>
                     <div className="table-container">
                         <table>
-                            <thead><tr><th>Item</th><th>Quantity</th><th>Min</th><th>Store</th><th>Expiry</th><th>Status</th><th></th></tr></thead>
+                            <thead><tr><th>Item</th><th>Quantity</th><th>Min</th><th>Store</th><th>Expiry</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
                             <tbody>
                                 {inventory.length === 0 ? (
                                     <tr><td colSpan={7}><div className="empty-state"><Apple size={24} color="var(--text-muted)" /><p>No items in inventory</p></div></td></tr>
@@ -352,7 +521,12 @@ export function FoodPage() {
                                                     {isLow ? 'Low' : 'OK'}
                                                 </span>
                                             </td>
-                                            <td><button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteInventoryItem(item.id)}><Trash2 size={14} color="var(--accent-red)" /></button></td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditingItem(item)}><Edit2 size={14} /></button>
+                                                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteInventoryItem(item.id)}><Trash2 size={14} color="var(--accent-red)" /></button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -417,7 +591,10 @@ export function FoodPage() {
                                         </div>
                                     )}
                                 </div>
-                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteRecipe(r.id)}><Trash2 size={14} color="var(--accent-red)" /></button>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditingRecipe(r)}><Edit2 size={14} /></button>
+                                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteRecipe(r.id)}><Trash2 size={14} color="var(--accent-red)" /></button>
+                                </div>
                             </div>
                             <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                 {r.ingredients.slice(0, 4).map((ing, i) => (
@@ -434,6 +611,8 @@ export function FoodPage() {
 
             {modal === 'inventory' && <AddInventoryModal onClose={() => setModal(null)} />}
             {modal === 'recipe' && <AddRecipeModal onClose={() => setModal(null)} />}
+            {editingItem && <EditInventoryModal item={editingItem} onClose={() => setEditingItem(null)} />}
+            {editingRecipe && <EditRecipeModal recipe={editingRecipe} onClose={() => setEditingRecipe(null)} />}
         </div>
     );
 }

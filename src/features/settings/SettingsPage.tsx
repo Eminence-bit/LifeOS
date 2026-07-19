@@ -8,6 +8,7 @@ const AVATAR_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#
 export function SettingsPage() {
     const { settings, updateSettings } = useSettingsStore();
     const [saved, setSaved] = useState(false);
+    const [showApiKey, setShowApiKey] = useState(false);
     const { signOut, isSupabaseConfigured } = useAuthStore();
 
     const profile = settings.userProfile || { name: 'Guest User', email: 'guest@example.com', avatarColor: '#7c3aed', bio: 'Local offline workspace.' };
@@ -217,6 +218,42 @@ export function SettingsPage() {
                             <option value={1}>Monday</option>
                             <option value={0}>Sunday</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Gemini AI Settings */}
+            <div className="card" style={{ padding: 24, marginBottom: 16 }}>
+                <h3 style={{ fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={18} /> Google Gemini AI Settings
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                        <label className="label">Gemini API Key</label>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                            <input
+                                className="input"
+                                type={showApiKey ? 'text' : 'password'}
+                                value={settings.geminiApiKey || ''}
+                                onChange={e => {
+                                    updateSettings({ geminiApiKey: e.target.value });
+                                    sessionStorage.removeItem('lifeos_ai_advice_v1');
+                                }}
+                                placeholder="AIzaSy..."
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                style={{ whiteSpace: 'nowrap' }}
+                            >
+                                {showApiKey ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                        <p className="text-sm text-muted" style={{ marginTop: 6 }}>
+                            A Google Gemini API key enables actual LLM suggestions and analytics. It is encrypted on the client side using your user credentials and safely saved to user storage.
+                        </p>
                     </div>
                 </div>
             </div>

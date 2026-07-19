@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
     week_starts_on INTEGER DEFAULT 1,
     notifications JSONB DEFAULT '{"inventory": true, "documents": true, "bills": true, "study": true, "workout": true}'::jsonb,
     quick_notes TEXT DEFAULT '',
+    gemini_api_key TEXT DEFAULT '',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

@@ -8,6 +8,7 @@ import { useCareerStore } from '@/store/careerStore';
 import { useDocumentsStore } from '@/store/documentsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
+import { encryptApiKey, decryptApiKey } from './crypto';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ class SyncEngine {
     private isInitialized = false;
     private isPulling = false;
     userId: string | null = null;
+    private hasGeminiApiKeyColumn = true;
 
     initialize() {
         if (this.isInitialized || !supabase) return;
@@ -289,8 +291,15 @@ class SyncEngine {
                 .from('settings').select('*').eq('id', this.userId).single();
             if (settingsErr) logError('pull/settings', settingsErr);
             if (dbSettings) {
+                this.hasGeminiApiKeyColumn = 'gemini_api_key' in dbSettings;
                 const { data: dbProfile } = await supabase
                     .from('profiles').select('*').eq('id', this.userId).single();
+
+                const localSettings = useSettingsStore.getState().settings;
+                const resolvedApiKey = this.hasGeminiApiKeyColumn
+                    ? (dbSettings.gemini_api_key ? decryptApiKey(dbSettings.gemini_api_key, this.userId) : '')
+                    : (localSettings.geminiApiKey || '');
+
                 useSettingsStore.setState({
                     settings: {
                         id: dbSettings.id,
@@ -302,6 +311,7 @@ class SyncEngine {
                         weekStartsOn: dbSettings.week_starts_on,
                         notifications: dbSettings.notifications,
                         quickNotes: dbSettings.quick_notes,
+                        geminiApiKey: resolvedApiKey,
                         createdAt: dbSettings.created_at || new Date().toISOString(),
                         updatedAt: dbSettings.updated_at || new Date().toISOString(),
                         userProfile: dbProfile ? {
@@ -729,16 +739,26 @@ class SyncEngine {
 
     // ── Settings ─────────────────────────────────────────────────────────────
 
-    async pushSettings(s: { theme: string; themeStyle: string; disableDynamicAccents: boolean; currency: string; timezone: string; weekStartsOn: number; notifications: unknown; quickNotes: string }) {
+    async pushSettings(s: { theme: string; themeStyle?: string; disableDynamicAccents?: boolean; currency: string; timezone: string; weekStartsOn: number; notifications: unknown; quickNotes?: string; geminiApiKey?: string }) {
         if (!this.client || !this.userId) return;
-        const { error } = await this.client.from('settings').upsert({
+
+        const payload: any = {
             id: this.userId,
-            theme: s.theme, theme_style: s.themeStyle,
-            disable_dynamic_accents: s.disableDynamicAccents,
-            currency: s.currency, timezone: s.timezone,
-            week_starts_on: s.weekStartsOn, notifications: s.notifications,
-            quick_notes: s.quickNotes
-        });
+            theme: s.theme,
+            theme_style: s.themeStyle || 'cozy-earth',
+            disable_dynamic_accents: s.disableDynamicAccents || false,
+            currency: s.currency,
+            timezone: s.timezone,
+            week_starts_on: s.weekStartsOn,
+            notifications: s.notifications,
+            quick_notes: s.quickNotes || ''
+        };
+
+        if (this.hasGeminiApiKeyColumn) {
+            payload.gemini_api_key = s.geminiApiKey ? encryptApiKey(s.geminiApiKey, this.userId) : '';
+        }
+
+        const { error } = await this.client.from('settings').upsert(payload);
         if (error) logError('upsert/settings', error);
     }
 

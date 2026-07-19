@@ -31,6 +31,8 @@ const defaultSettings: Settings = {
         bio: 'Local offline workspace.',
     },
     quickNotes: '',
+    geminiApiKey: '',
+    dashboardContext: 'work',
 };
 
 export const useSettingsStore = create<SettingsState>()(

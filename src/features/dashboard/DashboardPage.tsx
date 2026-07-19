@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import {
     CheckSquare, Calendar, Wallet, Apple, Heart, BookOpen,
     AlertTriangle, FileText, Zap, TrendingUp, ArrowUpRight,
-    Clock, Flame, Target, ShoppingCart, ChevronRight, PlusCircle, Sparkles, Edit2, Play, Pause, RotateCcw, X, Info, Award, Bookmark, Lightbulb, Star
+    Clock, Flame, Target, ShoppingCart, ChevronRight, PlusCircle, Sparkles, Edit2, Play, Pause, RotateCcw, X, Info, Award, Bookmark, Lightbulb, Star, RefreshCw
 } from 'lucide-react';
 import { usePlanningStore } from '@/store/planningStore';
 import { useFinanceStore } from '@/store/financeStore';
@@ -14,6 +14,131 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { daysUntil, formatCurrency, todayStr, currentMonth } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { fetchAIDashboardAdvice } from '@/services/aiService';
+import type { AIDashboardAdvice, AISuggestion } from '@/services/aiService';
+
+function RadarChart({ scores }: { scores: { name: string; value: number; color: string }[] }) {
+    const cx = 110;
+    const cy = 100;
+    const r = 70;
+    const pointsCount = scores.length;
+
+    // Level lines (25%, 50%, 75%, 100%)
+    const levelLines = [0.25, 0.5, 0.75, 1.0].map(level => {
+        const pts = [];
+        for (let i = 0; i < pointsCount; i++) {
+            const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
+            const x = cx + r * level * Math.cos(angle);
+            const y = cy + r * level * Math.sin(angle);
+            pts.push(`${x},${y}`);
+        }
+        return pts.join(' ');
+    });
+
+    // User data points
+    const userPts = scores.map((s, i) => {
+        const valRatio = Math.max(0.05, s.value / 100);
+        const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
+        const x = cx + r * valRatio * Math.cos(angle);
+        const y = cy + r * valRatio * Math.sin(angle);
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '14px 0' }}>
+            <svg width="220" height="200" style={{ overflow: 'visible' }}>
+                {/* Level Grid Polygons */}
+                {levelLines.map((pts, idx) => (
+                    <polygon
+                        key={idx}
+                        points={pts}
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.08)"
+                        strokeWidth="1"
+                    />
+                ))}
+
+                {/* Axis lines */}
+                {scores.map((_, i) => {
+                    const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
+                    const x = cx + r * Math.cos(angle);
+                    const y = cy + r * Math.sin(angle);
+                    return (
+                        <line
+                            key={i}
+                            x1={cx}
+                            y1={cy}
+                            x2={x}
+                            y2={y}
+                            stroke="rgba(255, 255, 255, 0.1)"
+                            strokeWidth="1"
+                        />
+                    );
+                })}
+
+                {/* User Data Polygon */}
+                <polygon
+                    points={userPts}
+                    fill="rgba(124, 58, 237, 0.25)"
+                    stroke="var(--accent-violet-light)"
+                    strokeWidth="2"
+                />
+
+                {/* Score dots */}
+                {scores.map((s, i) => {
+                    const valRatio = Math.max(0.05, s.value / 100);
+                    const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
+                    const x = cx + r * valRatio * Math.cos(angle);
+                    const y = cy + r * valRatio * Math.sin(angle);
+                    return (
+                        <circle
+                            key={i}
+                            cx={x}
+                            cy={y}
+                            r="4"
+                            fill={s.color}
+                        />
+                    );
+                })}
+
+                {/* Outer Labels */}
+                {scores.map((s, i) => {
+                    const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
+                    const x = cx + (r + 18) * Math.cos(angle);
+                    const y = cy + (r + 10) * Math.sin(angle);
+
+                    let textAnchor: 'inherit' | 'end' | 'start' | 'middle' = 'middle';
+                    if (Math.cos(angle) > 0.1) textAnchor = 'start';
+                    else if (Math.cos(angle) < -0.1) textAnchor = 'end';
+
+                    return (
+                        <g key={i}>
+                            <text
+                                x={x}
+                                y={y}
+                                textAnchor={textAnchor}
+                                fill="var(--text-secondary)"
+                                fontSize="10.5"
+                                fontWeight="700"
+                            >
+                                {s.name}
+                            </text>
+                            <text
+                                x={x}
+                                y={y + 11}
+                                textAnchor={textAnchor}
+                                fill="var(--text-muted)"
+                                fontSize="9"
+                            >
+                                {s.value}%
+                            </text>
+                        </g>
+                    );
+                })}
+            </svg>
+        </div>
+    );
+}
 
 export function DashboardPage() {
     const navigate = useNavigate();
@@ -21,13 +146,17 @@ export function DashboardPage() {
     const todayVal = todayStr();
 
     // ── Store Selectors ──
-    const { tasks, updateTask, events, goals } = usePlanningStore();
+    const { tasks, updateTask, addTask, addGoal, events, goals } = usePlanningStore();
     const { expenses, incomes, budgets, savingsGoals } = useFinanceStore();
     const { inventory, shoppingList, mealPlan, recipes, addShoppingItem } = useFoodStore();
-    const { workoutLogs, workoutPlans, waterIntakes, addWaterIntake } = useHealthStore();
+    const { workoutLogs, workoutPlans, waterIntakes, sleepLogs, addWaterIntake } = useHealthStore();
     const { topics, studySessions, dailyGoalMinutes, streak } = useLearningStore();
-    const { documents } = useDocumentsStore();
+    const { documents, addDocument } = useDocumentsStore();
     const { settings, updateSettings } = useSettingsStore();
+    const notesContent = settings.quickNotes || '';
+    const updateNotesContent = (txt: string) => {
+        updateSettings({ quickNotes: txt });
+    };
 
     const username = settings.userProfile?.name || 'User';
 
@@ -38,7 +167,68 @@ export function DashboardPage() {
     const [timerRunning, setTimerRunning] = useState(false);
     const [customFocusTarget, setCustomFocusTarget] = useState('');
     const [secondBrainTab, setSecondBrainTab] = useState<'notes' | 'ideas' | 'bookmarks'>('notes');
-    const [energyRating, setEnergyRating] = useState<number>(4);
+    const [manualEnergyRating, setManualEnergyRating] = useState<number | null>(null);
+    const [replayTab, setReplayTab] = useState<'today' | 'month'>('today');
+    const [dailyMood, setDailyMood] = useState<string>('😊');
+
+    // ── AI Suggestions & Analytics State ──
+    const [aiAdvice, setAiAdvice] = useState<AIDashboardAdvice | null>(null);
+    const [aiLoading, setAiLoading] = useState<boolean>(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const loadAIAdvice = async (forceRefresh = false) => {
+        console.log("loadAIAdvice: Triggered", { forceRefresh, hasApiKey: !!settings.geminiApiKey });
+        setAiLoading(true);
+        setAiError(null);
+        try {
+            if (!forceRefresh) {
+                const cached = sessionStorage.getItem('lifeos_ai_advice_v1');
+                console.log("loadAIAdvice: Checking sessionStorage cache", { cachedExists: !!cached });
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    console.log("loadAIAdvice: Using cached AI advice", parsed);
+                    setAiAdvice(parsed);
+                    setAiLoading(false);
+                    return;
+                }
+            }
+
+            const currentMonthStr = currentMonth();
+            const totalMonthExpenses = expenses.filter(e => e.date.startsWith(currentMonthStr)).reduce((s, e) => s + e.amount, 0);
+            const todayWaterAmount = waterIntakes.filter(w => w.date === todayVal).reduce((sum, w) => sum + w.amount, 0);
+
+            console.log("loadAIAdvice: Invoking fetchAIDashboardAdvice...");
+            const res = await fetchAIDashboardAdvice({
+                settings,
+                tasks,
+                expenses,
+                incomes,
+                budgets,
+                savingsGoals,
+                inventory,
+                mealPlan,
+                recipes,
+                workoutLogs,
+                studySessions,
+                documents,
+                streak,
+                dailyGoalMinutes,
+                todayWater: todayWaterAmount
+            });
+            console.log("loadAIAdvice: Received fetchAIDashboardAdvice response", res);
+            setAiAdvice(res);
+            sessionStorage.setItem('lifeos_ai_advice_v1', JSON.stringify(res));
+        } catch (err: any) {
+            console.error("loadAIAdvice: Caught exception in loadAIAdvice:", err);
+            setAiError('Failed to fetch AI Dashboard Advice.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadAIAdvice();
+    }, []);
 
     // ── Focus Mode Timer logic ──
     useEffect(() => {
@@ -64,10 +254,49 @@ export function DashboardPage() {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Helper to calculate days since date
+    const daysSince = (dateStr: string) => {
+        try {
+            const date = new Date(dateStr);
+            const t = new Date();
+            date.setHours(0, 0, 0, 0);
+            t.setHours(0, 0, 0, 0);
+            return Math.floor(Math.abs(t.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+        } catch {
+            return 999;
+        }
+    };
+
+    // ── Context Filtering (F) ──
+    const filteredTasks = useMemo(() => {
+        const ctx = settings.dashboardContext || 'work';
+        if (ctx === 'vacation') {
+            return tasks.filter(t => t.category?.toLowerCase() !== 'work' && t.category?.toLowerCase() !== 'study');
+        } else if (ctx === 'weekend') {
+            return tasks.filter(t => t.category?.toLowerCase() !== 'work');
+        }
+        return tasks;
+    }, [tasks, settings.dashboardContext]);
+
+    // ── Momentum Consistency Score (G) ──
+    const momentumScore = useMemo(() => {
+        const past7DaysWorkouts = workoutLogs.filter(w => daysSince(w.date) <= 7).length;
+        const workoutConsistency = Math.min(100, (past7DaysWorkouts / 3) * 100);
+
+        const studyDaysPast7 = new Set(studySessions.filter(s => daysSince(s.date) <= 7).map(s => s.date)).size;
+        const studyConsistency = Math.min(100, (studyDaysPast7 / 5) * 100);
+
+        const tasksPast7 = tasks.filter(t => daysSince(t.createdAt) <= 7);
+        const completedTasksPast7 = tasksPast7.filter(t => t.status === 'done').length;
+        const taskConsistency = tasksPast7.length > 0 ? (completedTasksPast7 / tasksPast7.length) * 100 : 80;
+
+        return Math.round((workoutConsistency * 0.3) + (studyConsistency * 0.4) + (taskConsistency * 0.3));
+    }, [workoutLogs, studySessions, tasks]);
+
     // ── Data Calculations ──
     const topTask = useMemo(() => {
-        return tasks.find(t => t.status !== 'done' && (!t.dueDate || t.dueDate <= todayVal));
-    }, [tasks, todayVal]);
+        return filteredTasks.find(t => t.status !== 'done' && (!t.dueDate || t.dueDate <= todayVal));
+    }, [filteredTasks, todayVal]);
 
     const todayWorkout = useMemo(() => {
         return workoutLogs.some(log => log.date === todayVal);
@@ -83,9 +312,94 @@ export function DashboardPage() {
     }, [waterIntakes, todayVal]);
     const waterGoalMet = todayWater >= 2000;
 
-    const prioritiesCount = tasks.filter(t => t.status !== 'done' && t.dueDate === todayVal).length;
+    const prioritiesCount = filteredTasks.filter(t => t.status !== 'done' && t.dueDate === todayVal).length;
     const mealsPlannedCount = mealPlan.filter(m => m.date === todayVal).length;
+
+    // ── Dynamic Greeting & Pacing Stats (A) ──
+    const greetingInfo = useMemo(() => {
+        const hours = today.getHours();
+        let greetText = 'Good Evening';
+        let icon = '🌅';
+        if (hours < 12) {
+            greetText = 'Good Morning';
+            icon = '🌅';
+        } else if (hours < 17) {
+            greetText = 'Good Afternoon';
+            icon = '☀️';
+        } else if (hours < 21) {
+            greetText = 'Good Evening';
+            icon = '🌆';
+        } else {
+            greetText = 'Good Night';
+            icon = '🌙';
+        }
+
+        const todayPendingTasks = filteredTasks.filter(t => t.status !== 'done' && t.dueDate === todayVal);
+        const studyRemaining = Math.max(0, dailyGoalMinutes - todayStudyMinutes);
+
+        let remainingItemsCount = todayPendingTasks.length;
+        if (studyRemaining > 0) remainingItemsCount += 1;
+        if (todayWater < 2000) remainingItemsCount += 1;
+        if (!todayWorkout) remainingItemsCount += 1;
+
+        let subtitle = "You're on track today.";
+
+        if (remainingItemsCount > 0) {
+            const estMinutes = (todayPendingTasks.length * 30) + studyRemaining;
+            const estHours = Math.floor(estMinutes / 60);
+            const estMins = estMinutes % 60;
+            if (estMinutes > 0) {
+                subtitle = `You have ${remainingItemsCount} meaningful things left today. Estimated completion: ${estHours > 0 ? `${estHours}h ` : ''}${estMins}m`;
+            } else {
+                subtitle = `Completed main tasks! Remaining habits check keeps you on track.`;
+            }
+        } else if (streak > 0) {
+            subtitle = `Awesome productivity! Your ${streak}-day streak is secured.`;
+        }
+
+        return { greetText, icon, subtitle };
+    }, [filteredTasks, todayVal, dailyGoalMinutes, todayStudyMinutes, todayWater, todayWorkout, streak]);
     const meetingsTodayCount = events.filter(e => e.startDate.startsWith(todayVal)).length;
+
+    // ── Algorithmic Energy Score (B) ──
+    const computedEnergyScore = useMemo(() => {
+        const lastSleepLog = sleepLogs.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
+        let sleepPoints = 28; // default baseline (avg sleep)
+        let sleepSuccess = false;
+        if (lastSleepLog) {
+            const durRatio = Math.min(1, lastSleepLog.duration / 8);
+            const qualRatio = Math.min(1, lastSleepLog.quality / 5);
+            sleepPoints = (durRatio * 20) + (qualRatio * 20);
+            if (lastSleepLog.duration >= 7 && lastSleepLog.quality >= 4) {
+                sleepSuccess = true;
+            }
+        }
+
+        const waterPoints = Math.min(20, (todayWater / 2000) * 20);
+        const waterSuccess = todayWater >= 1500;
+
+        const pendingTodayTasks = tasks.filter(t => t.status !== 'done' && t.dueDate === todayVal).length;
+        const workloadPoints = Math.max(0, 20 - (pendingTodayTasks * 4));
+        const workloadSuccess = pendingTodayTasks <= 2;
+
+        const workoutPoints = todayWorkout ? 20 : 10;
+        const workoutSuccess = todayWorkout;
+
+        const totalScore = Math.min(100, Math.round(sleepPoints + waterPoints + workloadPoints + workoutPoints));
+
+        return {
+            totalScore,
+            factors: {
+                sleep: sleepSuccess || (lastSleepLog && lastSleepLog.duration >= 6.5),
+                water: waterSuccess,
+                workload: workloadSuccess,
+                workout: workoutSuccess,
+                previousDay: lastSleepLog ? lastSleepLog.quality >= 3 : true
+            }
+        };
+    }, [sleepLogs, todayWater, tasks, todayVal, todayWorkout]);
+
+    const activeEnergyPercent = manualEnergyRating !== null ? manualEnergyRating * 20 : computedEnergyScore.totalScore;
 
     // Estimate free time
     const estimatedFreeTime = useMemo(() => {
@@ -156,10 +470,91 @@ export function DashboardPage() {
         return Math.round((completed / missionItems.length) * 100);
     }, [missionItems]);
 
+    // ── Active Calories Burned (System 2: Relationship Engine) ──
+    const activeCaloriesBurned = useMemo(() => {
+        const todayWorkoutsCount = workoutLogs.filter(w => w.date === todayVal).length;
+        return todayWorkoutsCount * 400; // 400 kcal per workout session
+    }, [workoutLogs, todayVal]);
+
+    // ── Achievements Unlocked (System 3: Achievement Engine) ──
+    const achievements = useMemo(() => {
+        const list = [];
+
+        // 7-day study streak
+        if (streak >= 7) {
+            list.push({
+                title: '7 Day Study Streak',
+                badge: 'Unlocked',
+                desc: 'Maintained focus daily.',
+                gains: ['+4 Momentum', '+2 Learning Score', '+1 Life Pulse'],
+                color: 'var(--accent-violet-light)'
+            });
+        } else if (streak >= 3) {
+            list.push({
+                title: '3 Day Study Booster',
+                badge: 'Unlocked',
+                desc: 'Consistently learning.',
+                gains: ['+2 Momentum', '+1 Learning Score'],
+                color: 'var(--accent-violet-light)'
+            });
+        }
+
+        // Workout warrior
+        const workoutsCount = workoutLogs.filter(w => daysSince(w.date) <= 7).length;
+        if (workoutsCount >= 3) {
+            list.push({
+                title: 'Workout Warrior',
+                badge: 'Unlocked',
+                desc: '3+ workouts logged in last 7 days.',
+                gains: ['+3 Momentum', '+2 Fitness Level'],
+                color: 'var(--accent-red)'
+            });
+        }
+
+        // Hydration guard
+        if (todayWater >= 2000) {
+            list.push({
+                title: 'Water Shield',
+                badge: 'Unlocked',
+                desc: '2000ml hydration goal hit today.',
+                gains: ['+2 Momentum', '+1 Life Pulse'],
+                color: 'var(--accent-cyan)'
+            });
+        }
+
+        // Frugal mastermind
+        if (budgetStatus === 'Budget is healthy' && totalMonthExpenses > 0) {
+            list.push({
+                title: 'Frugal Mastermind',
+                badge: 'Unlocked',
+                desc: 'Monthly expenses safe below limits.',
+                gains: ['+3 Finance Level'],
+                color: 'var(--accent-green)'
+            });
+        }
+
+        // Organized Brain
+        const isInboxEmpty = notesContent.trim().length === 0;
+        if (isInboxEmpty) {
+            list.push({
+                title: 'Organized Brain',
+                badge: 'Unlocked',
+                desc: 'All notes converted and triaged!',
+                gains: ['+2 Mind Clarity'],
+                color: 'var(--accent-amber)'
+            });
+        }
+
+        return list;
+    }, [streak, workoutLogs, todayWater, budgetStatus, totalMonthExpenses, notesContent]);
+
     // ── LIFE PULSE MASTER COACH SCORING ──
     const lifePulse = useMemo(() => {
-        // Health score: 50% workout logged + 50% water progress ratio
-        const healthScore = Math.round((todayWorkout ? 50 : 0) + Math.min(50, (todayWater / 2000) * 50));
+        // Health score: 40% workout logged + 30% water progress + 30% active calorie burn target (400 kcal)
+        const workoutPoints = todayWorkout ? 40 : 0;
+        const waterPoints = Math.min(30, (todayWater / 2000) * 30);
+        const caloriePoints = Math.min(30, (activeCaloriesBurned / 400) * 30);
+        const healthScore = Math.round(workoutPoints + waterPoints + caloriePoints);
 
         // Finance score: 100 - spent limit percentage (capped)
         const budgetSpentRatio = budgetLimitTotal > 0 ? totalMonthExpenses / budgetLimitTotal : 0;
@@ -168,9 +563,9 @@ export function DashboardPage() {
         // Learning score: target study minutes logged ratio
         const learningScore = Math.min(100, Math.round((todayStudyMinutes / dailyGoalMinutes) * 100)) || 0;
 
-        // Nutrition score: meals planned ratio (e.g. at least 3 planned meals is 100)
+        // Nutrition score: meals planned ratio + workout calorie boost
         const plannedMealsCount = mealPlan.filter(m => m.date === todayVal).length;
-        const nutritionScore = Math.min(100, plannedMealsCount * 33);
+        const nutritionScore = Math.min(100, (plannedMealsCount * 33) + (activeCaloriesBurned > 0 ? 10 : 0));
 
         // Documents score: proportion of valid documents
         const validDocs = documents.filter(d => d.status === 'valid').length;
@@ -327,6 +722,45 @@ export function DashboardPage() {
         return list;
     }, [inventory, budgetLimitTotal, totalMonthExpenses, today, settings.currency, waterGoalMet, todayWater, savingsGoals]);
 
+    // ── AI Advice mapping wrappers ──
+    const coachingAdviceText = useMemo(() => {
+        if (aiAdvice) return aiAdvice.coachingAdvice;
+        return lifePulse.coachingText;
+    }, [aiAdvice, lifePulse.coachingText]);
+
+    const renderedSuggestions = useMemo(() => {
+        if (aiAdvice) return aiAdvice.suggestions;
+        return coachSuggestions.map(s => ({
+            id: s.id,
+            msg: s.msg,
+            type: s.type,
+            actionLabel: s.actionLabel,
+            actionPath: s.id.startsWith('inv-') ? '/food' : s.id.startsWith('doc-') ? '/documents' : s.id.startsWith('budget-') ? '/finance' : '/learning'
+        }));
+    }, [aiAdvice, coachSuggestions]);
+
+    const renderedPredictions = useMemo(() => {
+        if (aiAdvice) return aiAdvice.predictions;
+        return predictions;
+    }, [aiAdvice, predictions]);
+
+    const handleSuggestionAction = (suggestion: AISuggestion) => {
+        if (suggestion.id.startsWith('sim-inv-') || suggestion.id.startsWith('inv-')) {
+            const parts = suggestion.id.split('-');
+            const itemId = parts[parts.length - 1];
+            const item = inventory.find(i => i.id === itemId);
+            if (item) {
+                const recPurchase = item.minQuantity * 2 - item.quantity;
+                addShoppingItem({ name: item.name, quantity: recPurchase, unit: item.unit });
+                alert(`Added ${recPurchase} ${item.unit} of ${item.name} to Shopping List.`);
+            } else {
+                navigate('/food');
+            }
+        } else if (suggestion.actionPath) {
+            navigate(suggestion.actionPath);
+        }
+    };
+
     // ── Weekly Progress Overview ──
     const weeklyProgress = useMemo(() => {
         const start = startOfWeek(today, { weekStartsOn: settings.weekStartsOn });
@@ -393,12 +827,6 @@ export function DashboardPage() {
     const todayEvents = useMemo(() => {
         return events.filter(e => e.startDate.startsWith(todayVal)).sort((a, b) => a.startDate.localeCompare(b.startDate));
     }, [events, todayVal]);
-
-    // parsed Second Brain Notepad categories
-    const notesContent = settings.quickNotes || '';
-    const updateNotesContent = (txt: string) => {
-        updateSettings({ quickNotes: txt });
-    };
 
     // ── FOCUS MODE TIMER STATION OVERLAY ──
     if (startDayStep === 'focus') {
@@ -474,9 +902,13 @@ export function DashboardPage() {
             {/* Header section with Dynamic Status Greet */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                 <div>
-                    <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>
-                        Good {today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}, {username} 👋
+                    <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span>{greetingInfo.icon}</span>
+                        <span>{greetingInfo.greetText}, {username}</span>
                     </h2>
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4, fontWeight: 500 }}>
+                        {greetingInfo.subtitle}
+                    </p>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginTop: 6 }}>
                         <span style={{ fontWeight: 600, color: 'var(--accent-violet-light)' }}>
@@ -498,7 +930,35 @@ export function DashboardPage() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: 3, border: '1px solid var(--border-soft)' }}>
+                        {(['work', 'weekend', 'vacation'] as const).map((ctx) => (
+                            <button
+                                key={ctx}
+                                className="btn btn-sm"
+                                style={{
+                                    padding: '4px 10px',
+                                    fontSize: 11,
+                                    height: 'auto',
+                                    lineHeight: 1.2,
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: (settings.dashboardContext || 'work') === ctx ? 'var(--accent-violet)' : 'transparent',
+                                    color: (settings.dashboardContext || 'work') === ctx ? 'white' : 'var(--text-secondary)',
+                                    textTransform: 'capitalize'
+                                }}
+                                onClick={() => {
+                                    updateSettings({ dashboardContext: ctx });
+                                    // Flush AI suggestions cache to force regeneration under new context
+                                    sessionStorage.removeItem('lifeos_ai_advice_v1');
+                                    loadAIAdvice(true);
+                                }}
+                            >
+                                {ctx}
+                            </button>
+                        ))}
+                    </div>
+
                     <button className="btn btn-secondary" style={{ display: 'flex', gap: 6, background: 'var(--gradient-violet)', border: 'none', color: 'white' }} onClick={() => setShowBriefingModal(true)}>
                         <Sparkles size={14} /> Full Daily Briefing
                     </button>
@@ -524,17 +984,41 @@ export function DashboardPage() {
                         </div>
 
                         {/* Energy Rating picker */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>Assess Today's Energy:</span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                                {[1, 2, 3, 4, 5].map((stars) => (
-                                    <Star
-                                        key={stars}
-                                        size={18}
-                                        style={{ cursor: 'pointer', fill: stars <= energyRating ? 'var(--accent-amber)' : 'none', color: 'var(--accent-amber)' }}
-                                        onClick={() => setEnergyRating(stars)}
-                                    />
-                                ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: 10 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    🔋 Energy Score: <strong style={{ color: 'var(--accent-cyan)' }}>{activeEnergyPercent}%</strong>
+                                    {manualEnergyRating !== null && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>(Manual Override)</span>}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <div style={{ display: 'flex', gap: 3 }}>
+                                        {[1, 2, 3, 4, 5].map((stars) => (
+                                            <Star
+                                                key={stars}
+                                                size={15}
+                                                style={{ cursor: 'pointer', fill: stars <= (manualEnergyRating || 0) ? 'var(--accent-amber)' : 'none', color: 'var(--accent-amber)' }}
+                                                onClick={() => setManualEnergyRating(stars)}
+                                                title={`Override to ${stars * 20}%`}
+                                            />
+                                        ))}
+                                    </div>
+                                    {manualEnergyRating !== null && (
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            style={{ fontSize: 10, padding: '2px 6px', height: 'auto', border: '1px solid var(--border-soft)' }}
+                                            onClick={() => setManualEnergyRating(null)}
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 12px', fontSize: 11, color: 'var(--text-muted)' }}>
+                                <span>{computedEnergyScore.factors.sleep ? '✓' : '✗'} Sleep</span>
+                                <span>{computedEnergyScore.factors.water ? '✓' : '✗'} Water</span>
+                                <span>{computedEnergyScore.factors.workload ? '✓' : '✗'} Workload</span>
+                                <span>{computedEnergyScore.factors.workout ? '✓' : '✗'} Workout</span>
+                                <span>{computedEnergyScore.factors.previousDay ? '✓' : '✗'} Previous Day</span>
                             </div>
                         </div>
 
@@ -681,62 +1165,138 @@ export function DashboardPage() {
                     </div>
 
                     {/* Today's Schedule & Timeline */}
-                    <div className="card" style={{ padding: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Calendar size={18} color="var(--accent-violet-light)" /> Today's Schedule
-                                </h3>
-                                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Chronological outline of the day's timeline</p>
+                    {(settings.dashboardContext || 'work') !== 'vacation' ? (
+                        <div className="card" style={{ padding: 24 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <div>
+                                    <h3 style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Calendar size={18} color="var(--accent-violet-light)" /> Today's Schedule
+                                    </h3>
+                                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Chronological outline of the day's timeline</p>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--accent-violet)' }} onClick={() => navigate('/planning')}>
+                                    View Planner
+                                </button>
                             </div>
-                            <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--accent-violet)' }} onClick={() => navigate('/planning')}>
-                                View Planner
-                            </button>
-                        </div>
 
-                        {todayEvents.length === 0 ? (
-                            <div style={{ padding: 14, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-                                No scheduled events for today. Add calendar item inside Planner.
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {todayEvents.map((evt) => (
-                                    <div key={evt.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, minWidth: 60, color: 'var(--accent-violet)' }}>
-                                            {evt.startDate.split('T')[1]?.slice(0, 5) || 'All Day'}
+                            {todayEvents.length === 0 ? (
+                                <div style={{ padding: 14, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                                    No scheduled events for today. Add calendar item inside Planner.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {todayEvents.map((evt) => (
+                                        <div key={evt.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, minWidth: 60, color: 'var(--accent-violet)' }}>
+                                                {evt.startDate.split('T')[1]?.slice(0, 5) || 'All Day'}
+                                            </div>
+                                            <div style={{ width: 3, height: 16, background: evt.color || 'var(--accent-violet)' }} />
+                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{evt.title}</div>
                                         </div>
-                                        <div style={{ width: 3, height: 16, background: evt.color || 'var(--accent-violet)' }} />
-                                        <div style={{ fontSize: 13, fontWeight: 600 }}>{evt.title}</div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="card" style={{ padding: 24, border: '1px solid var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <div>
+                                    <h3 style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-cyan)' }}>
+                                        🌴 Vacation Mode Active
+                                    </h3>
+                                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Daily workloads hidden. Focus on travel preparation & savings goals.</p>
+                                </div>
                             </div>
-                        )}
-                    </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {savingsGoals.length === 0 ? (
+                                    <div style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                                        No active savings targets. Maintain budget discipline.
+                                    </div>
+                                ) : (
+                                    savingsGoals.map(sg => {
+                                        const pct = Math.round((sg.currentAmount / sg.targetAmount) * 100);
+                                        return (
+                                            <div key={sg.id} style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                                                    <span>💰 {sg.title}</span>
+                                                    <span style={{ color: 'var(--accent-cyan)' }}>{pct}%</span>
+                                                </div>
+                                                <div className="progress-bar" style={{ height: 4 }}>
+                                                    <div className="progress-bar-fill" style={{ width: `${pct}%`, background: 'var(--accent-cyan)' }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Intelligent Suggestions */}
                     <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <Zap size={16} color="var(--accent-amber)" />
-                            <h4 style={{ fontWeight: 700, fontSize: 14 }}>Intelligent Suggestions</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Zap size={16} color="var(--accent-amber)" />
+                                <h4 style={{ fontWeight: 700, fontSize: 14 }}>Intelligent Suggestions</h4>
+                                {aiAdvice && (
+                                    <span style={{
+                                        fontSize: 9,
+                                        padding: '2px 6px',
+                                        borderRadius: 4,
+                                        background: aiAdvice.isMock ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)',
+                                        color: aiAdvice.isMock ? 'var(--text-muted)' : 'var(--accent-green)',
+                                        fontWeight: 600
+                                    }}>
+                                        {aiAdvice.isMock ? 'Simulated Co-Pilot' : 'Gemini AI Active'}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => loadAIAdvice(true)}
+                                disabled={aiLoading}
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: 4, display: 'flex', alignItems: 'center', gap: 4, opacity: aiLoading ? 0.6 : 1 }}
+                                title="Refresh AI Insights"
+                            >
+                                <style>{`
+                                    @keyframes ai-spin {
+                                        from { transform: rotate(0deg); }
+                                        to { transform: rotate(360deg); }
+                                    }
+                                    .ai-spinning {
+                                        animation: ai-spin 1.5s linear infinite;
+                                    }
+                                `}</style>
+                                <RefreshCw size={14} className={aiLoading ? 'ai-spinning' : ''} />
+                            </button>
                         </div>
-                        {coachSuggestions.length === 0 ? (
+                        {aiLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ height: 35, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
+                                <div style={{ height: 35, width: '90%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
+                            </div>
+                        ) : renderedSuggestions.length === 0 ? (
                             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No suggestions at this moment. Daily objectives balanced.</p>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {coachSuggestions.map((suggestion) => (
+                                {renderedSuggestions.map((suggestion) => (
                                     <div key={suggestion.id} className={`alert-chip alert-chip-${suggestion.type}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <AlertTriangle size={14} style={{ flexShrink: 0 }} />
                                             <span style={{ fontSize: 13 }}>{suggestion.msg}</span>
                                         </div>
                                         {suggestion.actionLabel && (
-                                            <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', fontSize: 11 }} onClick={suggestion.onAction}>
+                                            <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => handleSuggestionAction(suggestion)}>
                                                 {suggestion.actionLabel}
                                             </button>
                                         )}
                                     </div>
                                 ))}
                             </div>
+                        )}
+                        {aiError && (
+                            <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 8 }}>{aiError}</div>
                         )}
                     </div>
 
@@ -746,18 +1306,25 @@ export function DashboardPage() {
                             <Award size={16} color="var(--accent-violet-light)" />
                             <h4 style={{ fontWeight: 700, fontSize: 14 }}>Proactive Life Predictions</h4>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {predictions.map((pred, i) => (
-                                <div key={i} style={{
-                                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                                    background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10,
-                                    borderLeft: '3px solid var(--accent-violet)'
-                                }}>
-                                    <Info size={14} style={{ color: 'var(--accent-violet)', marginTop: 2, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{pred}</span>
-                                </div>
-                            ))}
-                        </div>
+                        {aiLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ height: 20, width: '80%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
+                                <div style={{ height: 20, width: '85%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {renderedPredictions.map((pred, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                                        background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10,
+                                        borderLeft: '3px solid var(--accent-violet)'
+                                    }}>
+                                        <Info size={14} style={{ color: 'var(--accent-violet)', marginTop: 2, flexShrink: 0 }} />
+                                        <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{pred}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Life Roadmap Milestones */}
@@ -816,30 +1383,37 @@ export function DashboardPage() {
                 {/* RIGHT COLUMN - Health Check & Inbox (4-grid) */}
                 <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-                    {/* Life Pulse Overall Coach Score */}
-                    <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    {/* Life Pulse Radar Chart (System 1 & 2) */}
+                    <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Award size={16} color="var(--accent-violet-light)" /> Life Pulse Overall
+                                <Award size={16} color="var(--accent-violet-light)" /> Life Pulse
                             </h4>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent-violet-light)' }}>
+                        </div>
+
+                        {/* Central Globe, Percentage, and Status */}
+                        <div style={{ textAlign: 'center', margin: '4px 0' }}>
+                            <div style={{ fontSize: 32, marginBottom: 4 }}>🌎</div>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
                                 {lifePulse.overall}%
+                            </div>
+                            <div style={{
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                color: lifePulse.overall >= 90 ? 'var(--accent-green)' :
+                                    lifePulse.overall >= 75 ? 'var(--accent-blue)' :
+                                        lifePulse.overall >= 60 ? 'var(--accent-amber)' :
+                                            'var(--accent-red)'
+                            }}>
+                                {lifePulse.overall >= 90 ? 'Excellent Life' :
+                                    lifePulse.overall >= 75 ? 'Balanced Life' :
+                                        lifePulse.overall >= 60 ? 'Recovering Life' :
+                                            lifePulse.overall >= 40 ? 'Action Needed' : 'Critical State'}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-                            {lifePulse.scores.map((s) => (
-                                <div key={s.name}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 2 }}>
-                                        <span style={{ color: 'var(--text-secondary)' }}>{s.name} Area</span>
-                                        <span>{s.value}%</span>
-                                    </div>
-                                    <div className="progress-bar" style={{ height: 6 }}>
-                                        <div className="progress-bar-fill" style={{ width: `${s.value}%`, background: s.color }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {/* Visual SVG Radar Chart */}
+                        <RadarChart scores={lifePulse.scores} />
 
                         <div style={{
                             padding: 10, background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)',
@@ -847,6 +1421,205 @@ export function DashboardPage() {
                         }}>
                             💡 <strong>Coach Advice:</strong> {lifePulse.coachingText}
                         </div>
+                    </div>
+
+                    {/* Momentum Tracker (System 1 Simplified) */}
+                    <div className="card" style={{ padding: 20, background: 'rgba(245, 158, 11, 0.02)', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
+                        <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                            <Flame size={16} color="var(--accent-amber)" /> Momentum
+                        </h4>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: 'var(--accent-amber)',
+                                textTransform: 'capitalize'
+                            }}>
+                                {momentumScore >= 80 ? 'Unstoppable' :
+                                    momentumScore >= 60 ? 'Steadily Acting' :
+                                        momentumScore >= 40 ? 'Recovering' : 'Stalled'}
+                            </span>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
+                                {momentumScore}%
+                            </div>
+                        </div>
+
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, marginTop: 8 }}>
+                            Rolling 7-day habit target compliance
+                        </p>
+                    </div>
+
+                    {/* Achievements Unlocked (System 3 Achievement Engine) */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Award size={16} color="var(--accent-cyan)" /> Achievements Unlocked
+                            </h4>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Habit Recognition</span>
+                        </div>
+
+                        {achievements.length === 0 ? (
+                            <div style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                                No achievements unlocked yet. Secure habits to build status!
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 200, overflowY: 'auto' }}>
+                                {achievements.map((ach) => (
+                                    <div key={ach.title} style={{ background: 'var(--bg-secondary)', padding: 12, borderRadius: 10, borderLeft: `3px solid ${ach.color}` }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{ach.title}</span>
+                                            <span style={{ fontSize: 9, background: ach.color, color: 'black', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>{ach.badge}</span>
+                                        </div>
+                                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{ach.desc}</p>
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                            {ach.gains.map(g => (
+                                                <span key={g} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 5px', borderRadius: 4 }}>
+                                                    {g}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Nightly Life Replay Card (Killer Feature) */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <RefreshCw size={16} color="var(--accent-violet-light)" /> Life Replay
+                            </h4>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                                {(['today', 'month'] as const).map((rpTab) => (
+                                    <button
+                                        key={rpTab}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{
+                                            padding: '2px 6px',
+                                            fontSize: 10,
+                                            height: 'auto',
+                                            background: replayTab === rpTab ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
+                                            color: replayTab === rpTab ? 'var(--accent-violet-light)' : 'var(--text-muted)'
+                                        }}
+                                        onClick={() => setReplayTab(rpTab)}
+                                    >
+                                        {rpTab === 'today' ? 'Tonight' : 'Monthly Report'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {replayTab === 'today' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Today's Balance</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workout logged</span>
+                                            <span>{todayWorkout ? '🟢 ✓' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 German Study Target</span>
+                                            <span>{studyGoalMet ? '🟢 ✓' : todayStudyMinutes > 0 ? '🟡 In Progress' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💧 Water Target met</span>
+                                            <span>{waterGoalMet ? '🟢 ✓' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💳 Budget Condition</span>
+                                            <span style={{ color: budgetStatus === 'Budget is healthy' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                                                {budgetStatus === 'Budget is healthy' ? 'Good' : 'Tight'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🍳 Meals Planned Today</span>
+                                            <span>{mealPlan.filter(m => m.date === todayVal).length > 0 ? '🟢 Done' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                            <span>😊 Rate Your Mood</span>
+                                            <div style={{ display: 'flex', gap: 4 }}>
+                                                {['😢', '😐', '🙂', '😊', '🤩'].map((mood) => (
+                                                    <button
+                                                        key={mood}
+                                                        style={{
+                                                            background: dailyMood === mood ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                                            border: 'none',
+                                                            fontSize: 14,
+                                                            cursor: 'pointer',
+                                                            padding: '2px 4px',
+                                                            borderRadius: 4
+                                                        }}
+                                                        onClick={() => setDailyMood(mood)}
+                                                    >
+                                                        {mood}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%)',
+                                    border: '1px solid var(--border-soft)',
+                                    padding: 12,
+                                    borderRadius: 10
+                                }}>
+                                    <div style={{ fontSize: 10, color: 'var(--accent-violet-light)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Today's Highlight</div>
+                                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                        {todayWorkout && waterGoalMet ? "You successfully protected your fitness and hydration levels today, locking double green checkmarks!" :
+                                            studyGoalMet ? `You advanced your German language goal to a ${streak}-day study streak today!` :
+                                                "Maintain your focus elements. Finish one primary task to spark positive momentum today."}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-violet-light)' }}>
+                                        July 2026 Life Report
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 Total Study:</span>
+                                            <strong>{studySessions.reduce((sum, s) => sum + s.duration, 0) + todayStudyMinutes} mins</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workouts log:</span>
+                                            <strong>{workoutLogs.length} sessions</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💰 Budget Deficit:</span>
+                                            <strong style={{ color: totalMonthExpenses < budgetLimitTotal ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                                                {totalMonthExpenses < budgetLimitTotal ? `Under by ₹${budgetLimitTotal - totalMonthExpenses}` : `Over limit`}
+                                            </strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Planned Meals:</span>
+                                            <strong>{mealPlan.length} meals</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Average Sleep Quality:</span>
+                                            <strong>
+                                                {sleepLogs.length > 0 ? (sleepLogs.reduce((sum, s) => sum + s.quality, 0) / sleepLogs.length).toFixed(1) : '8.5'}/5.0
+                                            </strong>
+                                        </div>
+                                        <hr style={{ border: 'none', borderTop: '1px solid var(--border-soft)', margin: '6px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Life Pulse average:</span>
+                                            <span style={{ color: 'var(--accent-violet-light)' }}>{lifePulse.overall}%</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Momentum average:</span>
+                                            <span style={{ color: 'var(--accent-amber)' }}>{momentumScore}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Second Brain Inbox - Upgraded Category view */}
@@ -877,14 +1650,85 @@ export function DashboardPage() {
                         </div>
 
                         {secondBrainTab === 'notes' && (
-                            <textarea
-                                className="input"
-                                value={notesContent}
-                                onChange={(e) => updateNotesContent(e.target.value)}
-                                placeholder="Jot down visa information, Germany links, random thoughts..."
-                                rows={6}
-                                style={{ width: '100%', resize: 'none', background: 'rgba(0,0,0,0.2)', fontSize: 13 }}
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <textarea
+                                    className="input"
+                                    value={notesContent}
+                                    onChange={(e) => updateNotesContent(e.target.value)}
+                                    placeholder="Jot down visa information, Germany links, random thoughts..."
+                                    rows={5}
+                                    style={{ width: '100%', resize: 'none', background: 'rgba(0,0,0,0.2)', fontSize: 13 }}
+                                />
+                                {notesContent.split('\n').filter(l => l.trim().length > 0).length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, maxHeight: 150, overflowY: 'auto' }}>
+                                        <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Convert note lines to items:</div>
+                                        {notesContent.split('\n').map((line, idx) => {
+                                            const trimmed = line.trim();
+                                            if (!trimmed) return null;
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="note-line-item"
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '6px 10px',
+                                                        background: 'rgba(255,255,255,0.02)',
+                                                        borderRadius: 6,
+                                                        fontSize: 12
+                                                    }}
+                                                >
+                                                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '55%', color: 'var(--text-primary)' }} title={trimmed}>
+                                                        {trimmed}
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        <button
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: 9, padding: '2px 5px', height: 'auto', background: 'rgba(124, 58, 237, 0.1)', color: 'var(--accent-violet-light)' }}
+                                                            onClick={() => {
+                                                                addTask({ title: trimmed, priority: 'medium', status: 'todo', tags: [] });
+                                                                const lines = notesContent.split('\n');
+                                                                lines.splice(idx, 1);
+                                                                updateNotesContent(lines.join('\n'));
+                                                                alert(`Converted "${trimmed}" into a Task!`);
+                                                            }}
+                                                        >
+                                                            +Task
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: 9, padding: '2px 5px', height: 'auto', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--accent-green)' }}
+                                                            onClick={() => {
+                                                                addGoal({ title: trimmed, progress: 0, taskIds: [] });
+                                                                const lines = notesContent.split('\n');
+                                                                lines.splice(idx, 1);
+                                                                updateNotesContent(lines.join('\n'));
+                                                                alert(`Converted "${trimmed}" into a Goal!`);
+                                                            }}
+                                                        >
+                                                            +Goal
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: 9, padding: '2px 5px', height: 'auto', background: 'rgba(6, 182, 212, 0.1)', color: 'var(--accent-cyan)' }}
+                                                            onClick={() => {
+                                                                addDocument({ title: trimmed, type: 'other' });
+                                                                const lines = notesContent.split('\n');
+                                                                lines.splice(idx, 1);
+                                                                updateNotesContent(lines.join('\n'));
+                                                                alert(`Converted "${trimmed}" into a Document!`);
+                                                            }}
+                                                        >
+                                                            +Doc
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {secondBrainTab === 'ideas' && (

@@ -54,6 +54,65 @@ function AddTaskModal({ onClose }: { onClose: () => void }) {
     );
 }
 
+// ── Edit Task Modal ──────────────────────────────────────────────
+function EditTaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
+    const { updateTask } = usePlanningStore();
+    const [form, setForm] = useState({
+        title: task.title,
+        priority: task.priority,
+        dueDate: task.dueDate || '',
+        category: task.category || '',
+        description: task.description || '',
+        status: task.status
+    });
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.title.trim()) return;
+        updateTask(task.id, {
+            title: form.title,
+            priority: form.priority,
+            dueDate: form.dueDate || undefined,
+            category: form.category || undefined,
+            description: form.description || undefined,
+            status: form.status
+        });
+        onClose();
+    };
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Task</h3>
+                <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Task title" required /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                            <label className="label">Priority</label>
+                            <select className="input" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value as TaskPriority })}>
+                                {['low', 'medium', 'high', 'urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="label">Due Date</label><input className="input" type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Category</label><input className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Work, Personal" /></div>
+                        <div>
+                            <label className="label">Status</label>
+                            <select className="input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as TaskStatus })}>
+                                {['todo', 'in_progress', 'done'].map(s => <option key={s} value={s}>{s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <div><label className="label">Description</label><textarea className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional notes..." /></div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Add Event Modal ─────────────────────────────────────────────
 function AddEventModal({ onClose }: { onClose: () => void }) {
     const { addEvent } = usePlanningStore();
@@ -88,8 +147,49 @@ function AddEventModal({ onClose }: { onClose: () => void }) {
     );
 }
 
+// ── Edit Event Modal ─────────────────────────────────────────────
+function EditEventModal({ event, onClose }: { event: Event; onClose: () => void }) {
+    const { updateEvent } = usePlanningStore();
+    const [form, setForm] = useState({ title: event.title, startDate: event.startDate, endDate: event.endDate || '', allDay: event.allDay, category: event.category || '', color: event.color || '#7c3aed' });
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.title.trim() || !form.startDate) return;
+        updateEvent(event.id, {
+            title: form.title,
+            startDate: form.startDate,
+            endDate: form.endDate || undefined,
+            allDay: form.allDay,
+            category: form.category || undefined,
+            color: form.color
+        });
+        onClose();
+    };
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Event</h3>
+                <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Event title" required /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Start *</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} required /></div>
+                        <div><label className="label">End</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={form.allDay} onChange={e => setForm({ ...form, allDay: e.target.checked })} />
+                        <span className="label" style={{ margin: 0 }}>All day event</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Calendar View ───────────────────────────────────────────────
-function CalendarView() {
+function CalendarView({ onEditEvent }: { onEditEvent: (event: Event) => void }) {
     const { events } = usePlanningStore();
     const [currentDate, setCurrentDate] = useState(new Date());
     const days = eachDayOfInterval({ start: startOfMonth(currentDate), end: endOfMonth(currentDate) });
@@ -124,12 +224,13 @@ function CalendarView() {
                                 {format(day, 'd')}
                             </div>
                             {dayEvents.slice(0, 2).map(e => (
-                                <div key={e.id} style={{
+                                <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onEditEvent(e); }} style={{
                                     fontSize: 10, fontWeight: 500, padding: '1px 4px', borderRadius: 4,
                                     background: e.color ? `${e.color}30` : 'rgba(124,58,237,0.2)',
                                     color: e.color ?? 'var(--accent-violet-light)',
                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                     marginBottom: 2,
+                                    cursor: 'pointer'
                                 }}>{e.title}</div>
                             ))}
                         </div>
@@ -141,7 +242,7 @@ function CalendarView() {
 }
 
 // ── Task List ───────────────────────────────────────────────────
-function TaskListView() {
+function TaskListView({ onEditTask }: { onEditTask: (task: Task) => void }) {
     const { tasks, updateTask, deleteTask } = usePlanningStore();
     const [filter, setFilter] = useState<'all' | 'todo' | 'in_progress' | 'done'>('all');
     const filtered = tasks.filter(t => filter === 'all' ? true : t.status === filter);
@@ -183,7 +284,10 @@ function TaskListView() {
                                     {task.dueDate && <span className="text-xs text-muted">{format(parseISO(task.dueDate), 'MMM d')}</span>}
                                 </div>
                             </div>
-                            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteTask(task.id)}><Trash2 size={14} color="var(--accent-red)" /></button>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => onEditTask(task)}><Edit2 size={14} /></button>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteTask(task.id)}><Trash2 size={14} color="var(--accent-red)" /></button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -227,11 +331,50 @@ function AddGoalModal({ onClose }: { onClose: () => void }) {
     );
 }
 
+// ── Edit Goal Modal ──────────────────────────────────────────────
+function EditGoalModal({ goal, onClose }: { goal: Goal; onClose: () => void }) {
+    const { updateGoal } = usePlanningStore();
+    const [form, setForm] = useState({ title: goal.title, description: goal.description || '', targetDate: goal.targetDate || '', category: goal.category || '', progress: goal.progress });
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.title.trim()) return;
+        updateGoal(goal.id, {
+            title: form.title,
+            description: form.description || undefined,
+            targetDate: form.targetDate || undefined,
+            category: form.category || undefined,
+            progress: form.progress
+        });
+        onClose();
+    };
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Goal</h3>
+                <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Learn Spanish B2" required /></div>
+                    <div><label className="label">Description</label><textarea className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What does success look like?" /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div><label className="label">Target Date</label><input className="input" type="date" value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></div>
+                        <div><label className="label">Category</label><input className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Health, Career" /></div>
+                    </div>
+                    <div>
+                        <label className="label">Progress: {form.progress}%</label>
+                        <input type="range" min={0} max={100} value={form.progress} onChange={e => setForm({ ...form, progress: +e.target.value })} style={{ width: '100%', accentColor: 'var(--accent-violet)' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Goals View ──────────────────────────────────────────────────
-function GoalsView() {
-    const { goals, tasks, updateGoal, deleteGoal } = usePlanningStore();
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editProgress, setEditProgress] = useState(0);
+function GoalsView({ onEditGoal }: { onEditGoal: (goal: Goal) => void }) {
+    const { goals, tasks, deleteGoal } = usePlanningStore();
 
     if (goals.length === 0) {
         return (
@@ -249,7 +392,6 @@ function GoalsView() {
                 const linkedTasks = tasks.filter(t => t.goalId === goal.id);
                 const doneTasks = linkedTasks.filter(t => t.status === 'done').length;
                 const daysLeft = goal.targetDate ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / 86400000) : null;
-                const isEditing = editingId === goal.id;
 
                 return (
                     <div key={goal.id} className="card" style={{ padding: 20 }}>
@@ -259,7 +401,7 @@ function GoalsView() {
                                 {goal.category && <span className="chip" style={{ fontSize: 11 }}>{goal.category}</span>}
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
-                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setEditingId(goal.id); setEditProgress(goal.progress); }}><Edit2 size={13} /></button>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => onEditGoal(goal)}><Edit2 size={13} /></button>
                                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deleteGoal(goal.id)}><Trash2 size={13} color="var(--accent-red)" /></button>
                             </div>
                         </div>
@@ -282,24 +424,14 @@ function GoalsView() {
                                 <text x={28} y={33} textAnchor="middle" fontSize={12} fontWeight={700} fill={goal.progress >= 100 ? 'var(--accent-green)' : 'var(--text-primary)'}>{goal.progress}%</text>
                             </svg>
                             <div style={{ flex: 1 }}>
-                                {isEditing ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <input type="range" min={0} max={100} value={editProgress} onChange={e => setEditProgress(+e.target.value)} style={{ width: '100%', accentColor: 'var(--accent-violet)' }} />
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button className="btn btn-primary btn-sm" onClick={() => { updateGoal(goal.id, { progress: editProgress }); setEditingId(null); }}>Save</button>
-                                            <button className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{goal.progress >= 100 ? '🎉 Completed!' : `${goal.progress}% done`}</div>
+                                    {daysLeft !== null && (
+                                        <div style={{ fontSize: 12, color: daysLeft < 0 ? 'var(--accent-red)' : daysLeft < 14 ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: 2 }}>
+                                            {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{goal.progress >= 100 ? '🎉 Completed!' : `${goal.progress}% done`}</div>
-                                        {daysLeft !== null && (
-                                            <div style={{ fontSize: 12, color: daysLeft < 0 ? 'var(--accent-red)' : daysLeft < 14 ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: 2 }}>
-                                                {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -329,6 +461,9 @@ function GoalsView() {
 export function PlanningPage() {
     const [tab, setTab] = useState<'tasks' | 'calendar' | 'goals'>('tasks');
     const [modal, setModal] = useState<'task' | 'event' | 'goal' | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+    const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
     return (
         <div>
@@ -352,13 +487,17 @@ export function PlanningPage() {
                 <button className={`tab ${tab === 'goals' ? 'active' : ''}`} onClick={() => setTab('goals')}><Target size={14} />Goals</button>
             </div>
 
-            {tab === 'tasks' && <TaskListView />}
-            {tab === 'calendar' && <CalendarView />}
-            {tab === 'goals' && <GoalsView />}
+            {tab === 'tasks' && <TaskListView onEditTask={setEditingTask} />}
+            {tab === 'calendar' && <CalendarView onEditEvent={setEditingEvent} />}
+            {tab === 'goals' && <GoalsView onEditGoal={setEditingGoal} />}
 
             {modal === 'task' && <AddTaskModal onClose={() => setModal(null)} />}
             {modal === 'event' && <AddEventModal onClose={() => setModal(null)} />}
             {modal === 'goal' && <AddGoalModal onClose={() => setModal(null)} />}
+
+            {editingTask && <EditTaskModal task={editingTask} onClose={() => setEditingTask(null)} />}
+            {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} />}
+            {editingGoal && <EditGoalModal goal={editingGoal} onClose={() => setEditingGoal(null)} />}
         </div>
     );
 }

@@ -29,6 +29,8 @@ export interface Settings extends BaseEntity {
     };
     userProfile?: UserProfile;
     quickNotes?: string;
+    geminiApiKey?: string;
+    dashboardContext?: 'work' | 'weekend' | 'vacation';
 }
 
 // ── Planning ──────────────────────────────────────────────────
