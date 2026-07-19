@@ -577,15 +577,26 @@ class SyncEngine {
 
     private async upsert(table: string, row: Record<string, unknown>) {
         if (!this.client || !this.userId) return;
+        // Hard guard: never send non-UUID IDs to Supabase
+        if (typeof row.id !== 'string' || !isValidUUID(row.id)) {
+            console.warn(`SyncEngine: skipping upsert to '${table}' — invalid UUID: ${row.id}`);
+            return;
+        }
         const { error } = await this.client.from(table).upsert({ ...row, profile_id: this.userId });
         if (error) logError(`upsert/${table}`, error);
     }
 
     private async remove(table: string, id: string) {
         if (!this.client || !this.userId) return;
+        // Hard guard: never delete with non-UUID IDs
+        if (!isValidUUID(id)) {
+            console.warn(`SyncEngine: skipping delete from '${table}' — invalid UUID: ${id}`);
+            return;
+        }
         const { error } = await this.client.from(table).delete().eq('id', id);
         if (error) logError(`delete/${table}`, error);
     }
+
 
     // ── Planning ─────────────────────────────────────────────────────────────
 
