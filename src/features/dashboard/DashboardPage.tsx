@@ -993,13 +993,13 @@ export function DashboardPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{ display: 'flex', gap: 3 }}>
                                         {[1, 2, 3, 4, 5].map((stars) => (
-                                            <Star
-                                                key={stars}
-                                                size={15}
-                                                style={{ cursor: 'pointer', fill: stars <= (manualEnergyRating || 0) ? 'var(--accent-amber)' : 'none', color: 'var(--accent-amber)' }}
-                                                onClick={() => setManualEnergyRating(stars)}
-                                                title={`Override to ${stars * 20}%`}
-                                            />
+                                            <span key={stars} title={`Override to ${stars * 20}%`}>
+                                                <Star
+                                                    size={15}
+                                                    style={{ cursor: 'pointer', fill: stars <= (manualEnergyRating || 0) ? 'var(--accent-amber)' : 'none', color: 'var(--accent-amber)' }}
+                                                    onClick={() => setManualEnergyRating(stars)}
+                                                />
+                                            </span>
                                         ))}
                                     </div>
                                     {manualEnergyRating !== null && (
