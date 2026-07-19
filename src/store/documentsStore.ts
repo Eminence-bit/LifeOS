@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Document, DocumentStatus } from '@/types';
 import { createBaseEntity, now, daysUntil } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 const deriveStatus = (doc: { expiryDate?: string }): DocumentStatus => {
     if (!doc.expiryDate) return 'valid';
@@ -21,25 +22,29 @@ interface DocumentsState {
 
 export const useDocumentsStore = create<DocumentsState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             documents: [],
-            addDocument: (d) =>
-                set((s) => ({
-                    documents: [
-                        ...s.documents,
-                        { ...createBaseEntity(), ...d, status: deriveStatus(d) },
-                    ],
-                })),
-            updateDocument: (id, updates) =>
+
+            addDocument: (d) => {
+                const entity = { ...createBaseEntity(), ...d, status: deriveStatus(d) };
+                set((s) => ({ documents: [...s.documents, entity] }));
+                syncEngine.pushDocument(entity);
+            },
+            updateDocument: (id, updates) => {
                 set((s) => ({
                     documents: s.documents.map((doc) => {
                         if (doc.id !== id) return doc;
                         const updated = { ...doc, ...updates, updatedAt: now() };
                         return { ...updated, status: deriveStatus(updated) };
                     }),
-                })),
-            deleteDocument: (id) =>
-                set((s) => ({ documents: s.documents.filter((d) => d.id !== id) })),
+                }));
+                const updated = get().documents.find((d) => d.id === id);
+                if (updated) syncEngine.pushDocument(updated);
+            },
+            deleteDocument: (id) => {
+                set((s) => ({ documents: s.documents.filter((d) => d.id !== id) }));
+                syncEngine.deleteDocument(id);
+            },
             refreshStatuses: () =>
                 set((s) => ({
                     documents: s.documents.map((d) => ({

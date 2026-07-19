@@ -1,6 +1,5 @@
-// Utility to generate unique IDs
-export const generateId = (): string =>
-    Math.random().toString(36).substring(2) + Date.now().toString(36);
+// Generate a standards-compliant UUID (required by Supabase UUID columns)
+export const generateId = (): string => crypto.randomUUID();
 
 // Utility to get current ISO timestamp
 export const now = (): string => new Date().toISOString();

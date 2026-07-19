@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Settings } from '@/types';
 import { createBaseEntity } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 interface SettingsState {
     settings: Settings;
@@ -34,10 +35,16 @@ const defaultSettings: Settings = {
 
 export const useSettingsStore = create<SettingsState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             settings: defaultSettings,
-            updateSettings: (updates) =>
-                set((s) => ({ settings: { ...s.settings, ...updates } })),
+            updateSettings: (updates) => {
+                set((s) => ({ settings: { ...s.settings, ...updates } }));
+                const s = get().settings;
+                syncEngine.pushSettings(s);
+                if (s.userProfile) {
+                    syncEngine.pushProfile(s.userProfile);
+                }
+            },
         }),
         { name: 'lifeos-settings' }
     )

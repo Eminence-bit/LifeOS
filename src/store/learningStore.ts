@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { LearningTopic, Lesson, VocabularyItem, StudySession } from '@/types';
 import { createBaseEntity, now, todayStr } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 interface LearningState {
     topics: LearningTopic[];
@@ -35,16 +36,26 @@ export const useLearningStore = create<LearningState>()(
             streak: 0,
             lastStudyDate: null,
 
-            addTopic: (t) =>
-                set((s) => ({ topics: [...s.topics, { ...createBaseEntity(), ...t }] })),
-            updateTopic: (id, updates) =>
+            addTopic: (t) => {
+                const entity = { ...createBaseEntity(), ...t };
+                set((s) => ({ topics: [...s.topics, entity] }));
+                syncEngine.pushLearningTopic(entity);
+            },
+            updateTopic: (id, updates) => {
                 set((s) => ({
                     topics: s.topics.map((t) =>
                         t.id === id ? { ...t, ...updates, updatedAt: now() } : t
                     ),
-                })),
-            deleteTopic: (id) => set((s) => ({ topics: s.topics.filter((t) => t.id !== id) })),
+                }));
+                const updated = get().topics.find((t) => t.id === id);
+                if (updated) syncEngine.pushLearningTopic(updated);
+            },
+            deleteTopic: (id) => {
+                set((s) => ({ topics: s.topics.filter((t) => t.id !== id) }));
+                syncEngine.deleteLearningTopic(id);
+            },
 
+            // Lessons are local-only (no Supabase table for lessons currently)
             addLesson: (l) =>
                 set((s) => ({ lessons: [...s.lessons, { ...createBaseEntity(), ...l }] })),
             updateLesson: (id, updates) =>
@@ -56,16 +67,24 @@ export const useLearningStore = create<LearningState>()(
             deleteLesson: (id) =>
                 set((s) => ({ lessons: s.lessons.filter((l) => l.id !== id) })),
 
-            addVocabulary: (v) =>
-                set((s) => ({ vocabulary: [...s.vocabulary, { ...createBaseEntity(), ...v }] })),
-            updateVocabulary: (id, updates) =>
+            addVocabulary: (v) => {
+                const entity = { ...createBaseEntity(), ...v };
+                set((s) => ({ vocabulary: [...s.vocabulary, entity] }));
+                syncEngine.pushVocabularyItem(entity);
+            },
+            updateVocabulary: (id, updates) => {
                 set((s) => ({
                     vocabulary: s.vocabulary.map((v) =>
                         v.id === id ? { ...v, ...updates, updatedAt: now() } : v
                     ),
-                })),
-            deleteVocabulary: (id) =>
-                set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== id) })),
+                }));
+                const updated = get().vocabulary.find((v) => v.id === id);
+                if (updated) syncEngine.pushVocabularyItem(updated);
+            },
+            deleteVocabulary: (id) => {
+                set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== id) }));
+                syncEngine.deleteVocabularyItem(id);
+            },
 
             logStudySession: (s) => {
                 const today = todayStr();
@@ -83,11 +102,13 @@ export const useLearningStore = create<LearningState>()(
                     newStreak = 1;
                 }
 
+                const entity = { ...createBaseEntity(), ...s };
                 set((state) => ({
-                    studySessions: [...state.studySessions, { ...createBaseEntity(), ...s }],
+                    studySessions: [...state.studySessions, entity],
                     streak: newStreak,
                     lastStudyDate: today,
                 }));
+                syncEngine.pushStudySession(entity);
             },
 
             setDailyGoal: (minutes) => set({ dailyGoalMinutes: minutes }),

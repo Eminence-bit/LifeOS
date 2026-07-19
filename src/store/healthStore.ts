@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { WorkoutPlan, WorkoutLog, BodyMetric, WaterIntake, SleepLog } from '@/types';
 import { createBaseEntity, now } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 interface HealthState {
     workoutPlans: WorkoutPlan[];
@@ -21,12 +22,13 @@ interface HealthState {
 
 export const useHealthStore = create<HealthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             workoutPlans: [],
             workoutLogs: [],
             bodyMetrics: [],
             waterIntakes: [],
             sleepLogs: [],
+
             addWorkoutPlan: (p) =>
                 set((s) => ({ workoutPlans: [...s.workoutPlans, { ...createBaseEntity(), ...p }] })),
             updateWorkoutPlan: (id, updates) =>
@@ -37,16 +39,34 @@ export const useHealthStore = create<HealthState>()(
                 })),
             deleteWorkoutPlan: (id) =>
                 set((s) => ({ workoutPlans: s.workoutPlans.filter((p) => p.id !== id) })),
-            addWorkoutLog: (l) =>
-                set((s) => ({ workoutLogs: [...s.workoutLogs, { ...createBaseEntity(), ...l }] })),
-            deleteWorkoutLog: (id) =>
-                set((s) => ({ workoutLogs: s.workoutLogs.filter((l) => l.id !== id) })),
-            addBodyMetric: (m) =>
-                set((s) => ({ bodyMetrics: [...s.bodyMetrics, { ...createBaseEntity(), ...m }] })),
-            addWaterIntake: (w) =>
-                set((s) => ({ waterIntakes: [...s.waterIntakes, { ...createBaseEntity(), ...w }] })),
-            addSleepLog: (s2) =>
-                set((s) => ({ sleepLogs: [...s.sleepLogs, { ...createBaseEntity(), ...s2 }] })),
+
+            addWorkoutLog: (l) => {
+                const entity = { ...createBaseEntity(), ...l };
+                set((s) => ({ workoutLogs: [...s.workoutLogs, entity] }));
+                syncEngine.pushWorkoutLog(entity);
+            },
+            deleteWorkoutLog: (id) => {
+                set((s) => ({ workoutLogs: s.workoutLogs.filter((l) => l.id !== id) }));
+                syncEngine.deleteWorkoutLog(id);
+            },
+
+            addBodyMetric: (m) => {
+                const entity = { ...createBaseEntity(), ...m };
+                set((s) => ({ bodyMetrics: [...s.bodyMetrics, entity] }));
+                syncEngine.pushBodyMetric(entity);
+            },
+
+            addWaterIntake: (w) => {
+                const entity = { ...createBaseEntity(), ...w };
+                set((s) => ({ waterIntakes: [...s.waterIntakes, entity] }));
+                syncEngine.pushWaterIntake(entity);
+            },
+
+            addSleepLog: (s2) => {
+                const entity = { ...createBaseEntity(), ...s2 };
+                set((s) => ({ sleepLogs: [...s.sleepLogs, entity] }));
+                syncEngine.pushSleepLog(entity);
+            },
         }),
         { name: 'lifeos-health' }
     )

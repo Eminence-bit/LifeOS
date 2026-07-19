@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { JobApplication, Project, Certificate, CareerSkill } from '@/types';
 import { createBaseEntity, now } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 interface CareerState {
     applications: JobApplication[];
@@ -23,45 +24,78 @@ interface CareerState {
 
 export const useCareerStore = create<CareerState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             applications: [],
             projects: [],
             certificates: [],
             skills: [],
-            addApplication: (a) =>
-                set((s) => ({ applications: [...s.applications, { ...createBaseEntity(), ...a }] })),
-            updateApplication: (id, updates) =>
+
+            addApplication: (a) => {
+                const entity = { ...createBaseEntity(), ...a };
+                set((s) => ({ applications: [...s.applications, entity] }));
+                syncEngine.pushJobApplication(entity);
+            },
+            updateApplication: (id, updates) => {
                 set((s) => ({
                     applications: s.applications.map((a) =>
                         a.id === id ? { ...a, ...updates, updatedAt: now() } : a
                     ),
-                })),
-            deleteApplication: (id) =>
-                set((s) => ({ applications: s.applications.filter((a) => a.id !== id) })),
-            addProject: (p) =>
-                set((s) => ({ projects: [...s.projects, { ...createBaseEntity(), ...p }] })),
-            updateProject: (id, updates) =>
+                }));
+                const updated = get().applications.find((a) => a.id === id);
+                if (updated) syncEngine.pushJobApplication(updated);
+            },
+            deleteApplication: (id) => {
+                set((s) => ({ applications: s.applications.filter((a) => a.id !== id) }));
+                syncEngine.deleteJobApplication(id);
+            },
+
+            addProject: (p) => {
+                const entity = { ...createBaseEntity(), ...p };
+                set((s) => ({ projects: [...s.projects, entity] }));
+                syncEngine.pushProject(entity);
+            },
+            updateProject: (id, updates) => {
                 set((s) => ({
                     projects: s.projects.map((p) =>
                         p.id === id ? { ...p, ...updates, updatedAt: now() } : p
                     ),
-                })),
-            deleteProject: (id) =>
-                set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
-            addCertificate: (c) =>
-                set((s) => ({ certificates: [...s.certificates, { ...createBaseEntity(), ...c }] })),
-            deleteCertificate: (id) =>
-                set((s) => ({ certificates: s.certificates.filter((c) => c.id !== id) })),
-            addSkill: (sk) =>
-                set((s) => ({ skills: [...s.skills, { ...createBaseEntity(), ...sk }] })),
-            updateSkill: (id, updates) =>
+                }));
+                const updated = get().projects.find((p) => p.id === id);
+                if (updated) syncEngine.pushProject(updated);
+            },
+            deleteProject: (id) => {
+                set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }));
+                syncEngine.deleteProject(id);
+            },
+
+            addCertificate: (c) => {
+                const entity = { ...createBaseEntity(), ...c };
+                set((s) => ({ certificates: [...s.certificates, entity] }));
+                syncEngine.pushCertificate(entity);
+            },
+            deleteCertificate: (id) => {
+                set((s) => ({ certificates: s.certificates.filter((c) => c.id !== id) }));
+                syncEngine.deleteCertificate(id);
+            },
+
+            addSkill: (sk) => {
+                const entity = { ...createBaseEntity(), ...sk };
+                set((s) => ({ skills: [...s.skills, entity] }));
+                syncEngine.pushCareerSkill(entity);
+            },
+            updateSkill: (id, updates) => {
                 set((s) => ({
                     skills: s.skills.map((sk) =>
                         sk.id === id ? { ...sk, ...updates, updatedAt: now() } : sk
                     ),
-                })),
-            deleteSkill: (id) =>
-                set((s) => ({ skills: s.skills.filter((sk) => sk.id !== id) })),
+                }));
+                const updated = get().skills.find((sk) => sk.id === id);
+                if (updated) syncEngine.pushCareerSkill(updated);
+            },
+            deleteSkill: (id) => {
+                set((s) => ({ skills: s.skills.filter((sk) => sk.id !== id) }));
+                syncEngine.deleteCareerSkill(id);
+            },
         }),
         { name: 'lifeos-career' }
     )

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { InventoryItem, Recipe, MealPlanEntry } from '@/types';
-import { createBaseEntity, now, todayStr } from '@/lib/utils';
+import { createBaseEntity, generateId, now, todayStr } from '@/lib/utils';
+import { syncEngine } from '@/lib/syncEngine';
 
 interface FoodState {
     inventory: InventoryItem[];
@@ -23,7 +24,7 @@ interface FoodState {
     addMealPlanEntry: (entry: Omit<MealPlanEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateMealPlanEntry: (id: string, updates: Partial<MealPlanEntry>) => void;
     deleteMealPlanEntry: (id: string) => void;
-    cookMeal: (entryId: string) => void; // deducts inventory
+    cookMeal: (entryId: string) => void;
 
     // Shopping
     refreshShoppingList: () => void;
@@ -40,38 +41,62 @@ export const useFoodStore = create<FoodState>()(
             mealPlan: [],
             shoppingList: [],
 
-            addInventoryItem: (item) =>
-                set((s) => ({ inventory: [...s.inventory, { ...createBaseEntity(), ...item }] })),
-            updateInventoryItem: (id, updates) =>
+            addInventoryItem: (item) => {
+                const entity = { ...createBaseEntity(), ...item };
+                set((s) => ({ inventory: [...s.inventory, entity] }));
+                syncEngine.pushInventoryItem(entity);
+            },
+            updateInventoryItem: (id, updates) => {
                 set((s) => ({
                     inventory: s.inventory.map((i) =>
                         i.id === id ? { ...i, ...updates, updatedAt: now() } : i
                     ),
-                })),
-            deleteInventoryItem: (id) =>
-                set((s) => ({ inventory: s.inventory.filter((i) => i.id !== id) })),
+                }));
+                const updated = get().inventory.find((i) => i.id === id);
+                if (updated) syncEngine.pushInventoryItem(updated);
+            },
+            deleteInventoryItem: (id) => {
+                set((s) => ({ inventory: s.inventory.filter((i) => i.id !== id) }));
+                syncEngine.deleteInventoryItem(id);
+            },
 
-            addRecipe: (recipe) =>
-                set((s) => ({ recipes: [...s.recipes, { ...createBaseEntity(), ...recipe }] })),
-            updateRecipe: (id, updates) =>
+            addRecipe: (recipe) => {
+                const entity = { ...createBaseEntity(), ...recipe };
+                set((s) => ({ recipes: [...s.recipes, entity] }));
+                syncEngine.pushRecipe(entity);
+            },
+            updateRecipe: (id, updates) => {
                 set((s) => ({
                     recipes: s.recipes.map((r) =>
                         r.id === id ? { ...r, ...updates, updatedAt: now() } : r
                     ),
-                })),
-            deleteRecipe: (id) =>
-                set((s) => ({ recipes: s.recipes.filter((r) => r.id !== id) })),
+                }));
+                const updated = get().recipes.find((r) => r.id === id);
+                if (updated) syncEngine.pushRecipe(updated);
+            },
+            deleteRecipe: (id) => {
+                set((s) => ({ recipes: s.recipes.filter((r) => r.id !== id) }));
+                syncEngine.deleteRecipe(id);
+            },
 
-            addMealPlanEntry: (entry) =>
-                set((s) => ({ mealPlan: [...s.mealPlan, { ...createBaseEntity(), ...entry }] })),
-            updateMealPlanEntry: (id, updates) =>
+            addMealPlanEntry: (entry) => {
+                const entity = { ...createBaseEntity(), ...entry };
+                set((s) => ({ mealPlan: [...s.mealPlan, entity] }));
+                syncEngine.pushMealPlan(entity);
+            },
+            updateMealPlanEntry: (id, updates) => {
                 set((s) => ({
                     mealPlan: s.mealPlan.map((m) =>
                         m.id === id ? { ...m, ...updates, updatedAt: now() } : m
                     ),
-                })),
-            deleteMealPlanEntry: (id) =>
-                set((s) => ({ mealPlan: s.mealPlan.filter((m) => m.id !== id) })),
+                }));
+                const updated = get().mealPlan.find((m) => m.id === id);
+                if (updated) syncEngine.pushMealPlan(updated);
+            },
+            deleteMealPlanEntry: (id) => {
+                set((s) => ({ mealPlan: s.mealPlan.filter((m) => m.id !== id) }));
+                syncEngine.deleteMealPlan(id);
+            },
 
             cookMeal: (entryId) => {
                 const { mealPlan, recipes, inventory } = get();
@@ -80,7 +105,6 @@ export const useFoodStore = create<FoodState>()(
                 const recipe = recipes.find((r) => r.id === entry.recipeId);
                 if (!recipe) return;
 
-                // Deduct inventory
                 const updatedInventory = inventory.map((item) => {
                     const ing = recipe.ingredients.find(
                         (i) => i.inventoryItemId === item.id
@@ -97,6 +121,13 @@ export const useFoodStore = create<FoodState>()(
                         m.id === entryId ? { ...m, cooked: true, updatedAt: now() } : m
                     ),
                 }));
+
+                // Sync affected inventory and meal plan entry
+                for (const item of updatedInventory) {
+                    syncEngine.pushInventoryItem(item);
+                }
+                const cookedEntry = get().mealPlan.find((m) => m.id === entryId);
+                if (cookedEntry) syncEngine.pushMealPlan(cookedEntry);
             },
 
             refreshShoppingList: () => {
@@ -120,21 +151,30 @@ export const useFoodStore = create<FoodState>()(
                 }));
             },
 
-            addShoppingItem: (item) =>
+            addShoppingItem: (item) => {
+                const newItem = { ...item, id: generateId(), checked: false, manual: true };
                 set((s) => ({
-                    shoppingList: [
-                        ...s.shoppingList,
-                        { ...item, id: `manual-${Math.random().toString(36).substring(2)}`, checked: false, manual: true },
-                    ],
-                })),
-            toggleShoppingItem: (id) =>
+                    shoppingList: [...s.shoppingList, newItem],
+                }));
+                syncEngine.pushShoppingItem(newItem);
+            },
+            toggleShoppingItem: (id) => {
                 set((s) => ({
                     shoppingList: s.shoppingList.map((i) =>
                         i.id === id ? { ...i, checked: !i.checked } : i
                     ),
-                })),
-            removeShoppingItem: (id) =>
-                set((s) => ({ shoppingList: s.shoppingList.filter((i) => i.id !== id) })),
+                }));
+                const toggled = get().shoppingList.find((i) => i.id === id);
+                // Only sync manual items — auto-* items are derived from inventory
+                if (toggled && toggled.manual && !toggled.id.startsWith('auto-')) {
+                    syncEngine.pushShoppingItem(toggled);
+                }
+            },
+            removeShoppingItem: (id) => {
+                set((s) => ({ shoppingList: s.shoppingList.filter((i) => i.id !== id) }));
+                // Only delete from DB if it was a manual (UUID) item
+                if (!id.startsWith('auto-')) syncEngine.deleteShoppingItem(id);
+            },
         }),
         { name: 'lifeos-food' }
     )
