@@ -963,13 +963,13 @@ export function DashboardPage() {
         return (
             <div style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                background: 'rgba(8, 7, 18, 0.98)', backdropFilter: 'blur(35px)',
+                background: 'var(--bg-primary)',
                 zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center', padding: 24
             }}>
                 <div style={{ maxWidth: 640, width: '100%', display: 'flex', flexDirection: 'column', gap: 28, alignItems: 'center', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-violet)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Flame size={16} /> FOCUS MODE ACTIVE
                         </span>
                         <button className="btn btn-ghost" style={{ padding: 8, borderRadius: '50%' }} onClick={() => setStartDayStep('idle')}>
@@ -979,10 +979,10 @@ export function DashboardPage() {
 
                     <div style={{
                         width: 250, height: 250, borderRadius: '50%',
-                        border: '8px solid rgba(255,255,255,0.02)',
-                        borderTopColor: timerRunning ? 'var(--accent-violet)' : 'rgba(255,255,255,0.1)',
+                        border: '8px solid var(--border)',
+                        borderTopColor: timerRunning ? 'var(--accent-primary)' : 'var(--border-strong)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 0 30px rgba(124, 58, 237, 0.15)', background: 'rgba(0,0,0,0.4)',
+                        background: 'var(--bg-secondary)',
                         transition: 'all 0.5s ease'
                     }}>
                         <div style={{ fontSize: 48, fontWeight: 900, fontFamily: 'monospace', letterSpacing: 2 }}>
@@ -1001,12 +1001,12 @@ export function DashboardPage() {
                         </button>
                     </div>
 
-                    <div className="card" style={{ padding: 24, width: '100%', background: 'rgba(255,255,255,0.02)' }}>
+                    <div className="card" style={{ padding: 24, width: '100%', background: 'var(--bg-secondary)' }}>
                         <h4 className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>ACTIVE FOCUS OBJECTIVE</h4>
                         <input
                             className="input"
                             style={{
-                                background: 'transparent', border: 'none', borderBottom: '2px solid rgba(255,255,255,0.1)',
+                                background: 'transparent', border: 'none', borderBottom: '2px solid var(--border)',
                                 fontSize: 18, fontWeight: 700, textAlign: 'center', paddingBottom: 6, color: 'var(--text-primary)', width: '100%'
                             }}
                             value={currentTargetText}
@@ -1015,7 +1015,7 @@ export function DashboardPage() {
                         />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, background: 'rgba(255,255,255,0.02)', padding: '10px 16px', borderRadius: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, background: 'var(--bg-secondary)', padding: '10px 16px', borderRadius: 10, color: 'var(--text-primary)' }}>
                         <span>Logged Water: <strong>{todayWater} / 2000 ml</strong></span>
                         <button className="btn btn-ghost btn-sm" style={{ border: '1px solid var(--border-soft)' }} onClick={() => addWaterIntake({ date: todayVal, amount: 250 })}>
                             +250ml
