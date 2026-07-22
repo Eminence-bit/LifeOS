@@ -1,100 +1,54 @@
 # Product Roadmap
 
-> This roadmap is derived from `PROJECT_CONSTITUTION.md §7`. It tracks the delivery plan at the feature level.
+> This roadmap is derived from `PROJECT_CONSTITUTION.md §7`. It tracks the high-level delivery plan and platform evolution. 
+> For granular v1.0 requirements, refer to `RELEASE_CHECKLIST.md`.
 
 ---
 
-## Version 1.0 — Personal OS (Current)
+## v1.0 (Current) — Personal Operating System
+**Status:** 🟡 Active Development
 
-**Status:** 🟡 Active Development  
-**Goal:** Feature Complete Personal Operating System
+### ✅ Completed
+- [x] All 8 Core Modules Complete (Dashboard, Planner, Finance, Food, Health, Learning, Career, Documents)
+- [x] Sub-features Complete (Second Brain, Focus Mode)
+- [x] Architecture Complete (Zustand, SyncEngine, Drizzle ORM)
 
-### Modules
-| Module | Status |
-|--------|--------|
-| Dashboard (Mission, Life Pulse, Momentum, Coach, Predictions, Replay) | ✅ Complete |
-| Planner (Tasks, Goals, Calendar, Events) | ✅ Complete |
-| Finance (Income, Expenses, Budgets, Savings, Reports) | ✅ Complete |
-| Food (Inventory, Recipes, Meal Planner, Shopping, Nutrition) | ✅ Complete |
-| Health (Workout, Weight, Water, Sleep, Body Metrics) | ✅ Complete |
-| Learning (Topics, Study Sessions, Vocabulary, German) | ✅ Complete |
-| Career (Projects, Skills, Certificates, Applications) | ✅ Complete |
-| Documents (Vault, Expiry Tracking, Storage) | ✅ Complete |
-| Second Brain (Notes, Ideas, Quick Capture) | ✅ Complete |
-| Focus Mode | ✅ Complete |
-| AI Intelligence (Ambient, not chatbot) | 🟡 In Progress |
+### ⚪ Remaining
+- AI Integration (Ambient intelligence, Contextual Coach)
+- Tech Debt Resolution (Component splitting, Date handling)
+- Polish & Consistency
+- Testing (Lighthouse, Edge cases)
+- Performance & Routing optimizations
 
 ---
 
-## Version 1.1 — Polish & Stability
+## v1.1 — Quality of Life
+**Goal:** Make what exists feel exceptional. No new modules.
 
-**Goal:** Make what exists feel exceptional.  
-**No new modules. No architecture changes.**
-
-| Area | Work |
-|------|------|
-| Performance | Lazy loading, memoisation, render optimisation |
-| Animations | Page transitions, micro-interactions, loading states |
-| Accessibility | ARIA labels, keyboard nav, focus management |
-| Offline | Better offline UX, sync conflict handling |
-| Widgets | Configurable dashboard widgets |
-| Dashboard | Improved layout options, personalisation |
-| Calendar | Better week/month views, drag-drop |
-| Reports | Richer Finance and Health reports |
-| AI Insights | More data-driven, context-aware suggestions |
-| Bug Fixes | Address any accumulated bugs from v1.0 |
+- **Better Dashboard:** Improved layout options, configurable widgets.
+- **Better Reports:** Richer Finance and Health visualizations.
+- **Better Personalization:** Advanced theme handling, contextual modes.
+- **Better AI:** More data-driven and context-aware suggestions.
+- **Better UX:** Animations, page transitions, accessibility, keyboard nav.
 
 ---
 
-## Version 1.2 — Architecture Evolution
+## v1.2 — Platform Preparation
+**Goal:** Stabilize internals for Version 2 expansion. No functional user-facing changes.
 
-**Goal:** Stabilise internals for Version 2 expansion.  
-**App behaviour stays identical. No user-facing feature changes (besides notifications).**
-
-| Area | Work |
-|------|------|
-| Backend Cleanup | Dead code removal, service extraction |
-| API Versioning | Prepare stable internal API contracts |
-| Service Layer | Extract syncEngine logic into domain services |
-| Event System | Internal event bus for cross-module communication |
-| Database Optimisation | Indexes, query tuning |
-| Background Jobs | Deferred heavy computations |
-| Caching | Memoised selectors, smart re-fetch |
-| Realtime | Supabase realtime subscriptions for live updates |
-| Notification Service | In-app notification centre (expiry, bills, study reminders) |
-| Developer Documentation | Internal docs, code comments, ADRs |
+- **Service Layer:** Extract logic into isolated domain services.
+- **Event Bus:** Internal event system for cross-module communication.
+- **Notifications:** Push and in-app notification center.
+- **Realtime:** Supabase realtime subscriptions for live multidimensional updates.
+- **Background Jobs:** Deferred heavy computations.
+- **Internal Cleanup:** Developer docs, cache strategies, query tuning.
 
 ---
 
-## Version 2.0 — Shared Spaces
+## v2.0 — Shared Spaces
+**Goal:** Evolve from personal OS to collaborative household/team OS.
 
-**Goal:** Evolve from personal OS to collaborative household/team OS.  
-**This is a major platform evolution, not a feature addition.**
-
-| Feature | Description |
-|---------|-------------|
-| Spaces | New top-level entity; replaces `profile_id` anchor |
-| Members | Invite people to a Space |
-| Roles & Permissions | Owner, Admin, Member, Viewer |
-| Shared Dashboard | Space-level dashboard |
-| Shared Planner | Tasks and goals visible to Space members |
-| Shared Budget | Split expenses, shared budgets |
-| Shared Inventory | Household pantry |
-| Shared Meal Planning | Family meal schedule |
-| Shared Grocery | Collaborative shopping list |
-| Chore Management | Assignment, tracking, reminders |
-| Responsibilities | Recurring ownership of tasks |
-| Voting | Group decisions on shared items |
-| Activity Feed | Real-time Space activity log |
-| Space Types | Family, Apartment, Roommates, Couples, Teams |
-
----
-
-## Legend
-
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Complete |
-| 🟡 | In Progress |
-| ⚪ | Planned |
-| 🔵 | Under Consideration |
+- **Platform Evolution:** New top-level `Space` entity replacing `profile_id` anchor.
+- **Collaboration:** Member invitations, Roles & Permissions (Owner, Admin, Member, Viewer).
+- **Shared Entities:** Shared dashboards, split budgets, family meal schedules, collaborative pantries.
+- **Group Dynamics:** Chore assignment, recurring responsibilities, group voting on decisions.

@@ -29,6 +29,7 @@ Canonical project documentation. The source of truth for architecture, design, A
 | Document | Purpose |
 |----------|---------|
 | [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) | Feature-level delivery plan: v1.0 → v2.0 |
+| [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md) | Strict definition of 'Done' criteria for v1.0 |
 | [CHANGELOG.md](./CHANGELOG.md) | Running log of all notable changes by version |
 | [VERSION_HISTORY.md](./VERSION_HISTORY.md) | Narrative milestone log per major version |
 | [DEFINITION_OF_DONE.md](./DEFINITION_OF_DONE.md) | Checklist a feature must pass before being considered complete |
