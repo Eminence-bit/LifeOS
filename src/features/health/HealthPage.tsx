@@ -22,7 +22,7 @@ function AddWorkoutModal({ onClose }: { onClose: () => void }) {
             <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Log Workout</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                         <div><label className="label">Duration (min)</label><input className="input" type="number" min="1" value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} /></div>
                         <div><label className="label">Calories Burned</label><input className="input" type="number" min="0" value={form.caloriesBurned} onChange={e => setForm({ ...form, caloriesBurned: e.target.value })} placeholder="Optional" /></div>
@@ -30,7 +30,7 @@ function AddWorkoutModal({ onClose }: { onClose: () => void }) {
                     <div>
                         <label className="label">Exercises</label>
                         {form.exercises.map((ex, i) => (
-                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8, marginBottom: 6 }}>
+                            <div key={i} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr] gap-2 mb-1.5">
                                 <input className="input" placeholder="Exercise name" value={ex.name} onChange={e => { const upd = [...form.exercises]; upd[i] = { ...upd[i], name: e.target.value }; setForm({ ...form, exercises: upd }); }} />
                                 <input className="input" type="number" placeholder="Sets" value={ex.sets ?? ''} onChange={e => { const upd = [...form.exercises]; upd[i] = { ...upd[i], sets: +e.target.value }; setForm({ ...form, exercises: upd }); }} />
                                 <input className="input" type="number" placeholder="Reps" value={ex.reps ?? ''} onChange={e => { const upd = [...form.exercises]; upd[i] = { ...upd[i], reps: +e.target.value }; setForm({ ...form, exercises: upd }); }} />
@@ -64,7 +64,7 @@ function AddBodyMetricModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Log Body Metrics</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Weight (kg)</label><input className="input" type="number" step="0.1" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
                         <div><label className="label">Height (cm)</label><input className="input" type="number" step="0.5" value={form.height} onChange={e => setForm({ ...form, height: e.target.value })} /></div>
                         <div><label className="label">Body Fat %</label><input className="input" type="number" step="0.1" value={form.bodyFat} onChange={e => setForm({ ...form, bodyFat: e.target.value })} /></div>

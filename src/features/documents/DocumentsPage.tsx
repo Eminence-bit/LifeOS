@@ -34,7 +34,7 @@ function AddDocumentModal({ onClose }: { onClose: () => void }) {
             <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Document</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Document Name *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. German Residence Permit" required /></div>
                         <div><label className="label">Type</label>
                             <select className="input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as DocumentType })}>
@@ -42,11 +42,11 @@ function AddDocumentModal({ onClose }: { onClose: () => void }) {
                             </select>
                         </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Issuer / Authority</label><input className="input" value={form.issuer} onChange={e => setForm({ ...form, issuer: e.target.value })} placeholder="e.g. Ausländerbehörde" /></div>
                         <div><label className="label">Country</label><input className="input" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="e.g. Germany" /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Issue Date</label><input className="input" type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} /></div>
                         <div><label className="label">Expiry Date</label><input className="input" type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} /></div>
                         <div><label className="label">Document Number</label><input className="input" value={form.documentNumber} onChange={e => setForm({ ...form, documentNumber: e.target.value })} /></div>

@@ -24,11 +24,11 @@ function AddExpenseModal({ onClose }: { onClose: () => void }) {
             <div className="modal" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Expense</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Rent" required /></div>
                         <div><label className="label">Amount (€) *</label><input className="input" type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Category</label>
                             <select className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value as ExpenseCategory })}>
                                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
@@ -66,7 +66,7 @@ function AddIncomeModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Income</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Monthly salary" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Amount (€) *</label><input className="input" type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
                         <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                     </div>
@@ -100,7 +100,7 @@ function SetBudgetModal({ onClose }: { onClose: () => void }) {
                             {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                         </select>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Monthly Limit (€)</label><input className="input" type="number" step="0.01" min="0" value={form.limit} onChange={e => setForm({ ...form, limit: e.target.value })} required /></div>
                         <div><label className="label">Month</label><input className="input" type="month" value={form.month} onChange={e => setForm({ ...form, month: e.target.value })} /></div>
                     </div>
@@ -130,7 +130,7 @@ function AddSavingsModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>New Savings Goal</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Goal Name *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Emergency Fund" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Target ({settings.currency})</label><input className="input" type="number" step="0.01" min="0" value={form.targetAmount} onChange={e => setForm({ ...form, targetAmount: e.target.value })} required /></div>
                         <div><label className="label">Current ({settings.currency})</label><input className="input" type="number" step="0.01" min="0" value={form.currentAmount} onChange={e => setForm({ ...form, currentAmount: e.target.value })} /></div>
                     </div>
@@ -221,7 +221,7 @@ export function FinancePage() {
             </div>
 
             {tab === 'overview' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="card" style={{ padding: 20 }}>
                         <h3 style={{ fontWeight: 600, marginBottom: 16, fontSize: 14, color: 'var(--text-secondary)' }}>6-MONTH TREND</h3>
                         <ResponsiveContainer width="100%" height={200}>

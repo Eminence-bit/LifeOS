@@ -85,7 +85,7 @@ export function SettingsPage() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className="label">Full Name</label>
                             <input
@@ -189,7 +189,7 @@ export function SettingsPage() {
                     <Globe size={18} /> Regional Settings
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className="label">Currency</label>
                             <select className="input" value={settings.currency} onChange={e => updateSettings({ currency: e.target.value })}>

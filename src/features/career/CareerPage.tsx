@@ -30,11 +30,11 @@ function AddApplicationModal({ onClose }: { onClose: () => void }) {
             <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Job Application</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Company *</label><input className="input" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} required /></div>
                         <div><label className="label">Role *</label><input className="input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} required /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Status</label>
                             <select className="input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as ApplicationStatus })}>
                                 {STATUS_COLUMNS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
@@ -43,7 +43,7 @@ function AddApplicationModal({ onClose }: { onClose: () => void }) {
                         <div><label className="label">Applied Date</label><input className="input" type="date" value={form.appliedDate} onChange={e => setForm({ ...form, appliedDate: e.target.value })} /></div>
                         <div><label className="label">Deadline</label><input className="input" type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Location</label><input className="input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Berlin, Germany" /></div>
                         <div><label className="label">Salary Range</label><input className="input" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} placeholder="e.g. €35,000 - €45,000" /></div>
                     </div>
@@ -75,7 +75,7 @@ function AddProjectModal({ onClose }: { onClose: () => void }) {
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
                     <div><label className="label">Technologies (comma-separated)</label><input className="input" value={form.technologies} onChange={e => setForm({ ...form, technologies: e.target.value })} placeholder="React, TypeScript, Node.js" /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">GitHub URL</label><input className="input" value={form.githubUrl} onChange={e => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/..." /></div>
                         <div><label className="label">Live URL</label><input className="input" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://..." /></div>
                     </div>
@@ -249,11 +249,11 @@ export function CareerPage() {
                             setModal(null);
                         }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div><label className="label">Title *</label><input className="input" name="title" required /></div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div><label className="label">Issuer *</label><input className="input" name="issuer" required /></div>
                                 <div><label className="label">Issue Date *</label><input className="input" type="date" name="issueDate" required /></div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div><label className="label">Expiry Date</label><input className="input" type="date" name="expiryDate" /></div>
                                 <div><label className="label">URL</label><input className="input" type="url" name="url" placeholder="https://..." /></div>
                             </div>

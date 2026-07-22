@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Calendar, Wallet, UtensilsCrossed,
     Heart, BookOpen, Briefcase, FileText, Settings,
-    ChevronLeft, Search, Bell, X, Zap
+    ChevronLeft, Search, Bell, X, Zap, Menu
 } from 'lucide-react';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -31,6 +31,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
     const [collapsed, setCollapsed] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const location = useLocation();
     const { settings } = useSettingsStore();
 
@@ -90,19 +91,24 @@ export function AppShell({ children }: AppShellProps) {
     );
 
     return (
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)' }}>
+        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+
+            {/* Mobile Sidebar Overlay */}
+            {mobileMenuOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+                    onClick={() => setMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <aside
+                className={`fixed inset-y-0 left-0 z-50 flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 transform md:relative md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                    }`}
                 style={{
                     width: collapsed ? 64 : 220,
                     background: 'var(--bg-sidebar)',
                     borderRight: '1px solid var(--border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexShrink: 0,
-                    transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)',
-                    overflow: 'hidden',
-                    zIndex: 10,
                 }}
             >
                 {/* Logo */}
@@ -149,6 +155,7 @@ export function AppShell({ children }: AppShellProps) {
                             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
                             style={{ justifyContent: collapsed ? 'center' : 'flex-start' }}
                             title={collapsed ? label : undefined}
+                            onClick={() => setMobileMenuOpen(false)}
                         >
                             <span className="nav-icon" style={{ display: 'flex', flexShrink: 0 }}>
                                 <Icon size={18} />
@@ -158,8 +165,8 @@ export function AppShell({ children }: AppShellProps) {
                     ))}
                 </nav>
 
-                {/* Collapse toggle */}
-                <div style={{ padding: '12px 8px', borderTop: '1px solid var(--border)' }}>
+                {/* Collapse toggle (hidden on mobile) */}
+                <div className="hidden md:block" style={{ padding: '12px 8px', borderTop: '1px solid var(--border)' }}>
                     <button
                         className="btn btn-ghost"
                         style={{ width: '100%', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10, padding: '8px 12px' }}
@@ -173,34 +180,39 @@ export function AppShell({ children }: AppShellProps) {
             </aside>
 
             {/* Main content */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="flex flex-col flex-1 overflow-hidden">
                 {/* Top bar */}
-                <header style={{
-                    height: 64,
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 24px',
-                    gap: 16,
-                    background: 'var(--bg-sidebar)',
-                    flexShrink: 0,
-                }}>
+                <header
+                    className="flex items-center flex-shrink-0 px-4 md:px-6 gap-3 md:gap-4 h-16"
+                    style={{
+                        borderBottom: '1px solid var(--border)',
+                        background: 'var(--bg-sidebar)',
+                    }}
+                >
+                    {/* Mobile Hamburger */}
+                    <button
+                        className="md:hidden btn btn-ghost btn-icon"
+                        onClick={() => setMobileMenuOpen(true)}
+                    >
+                        <Menu size={20} />
+                    </button>
+
                     {/* Page title */}
-                    <div style={{ flex: 1 }}>
-                        <h1 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.2px' }}>
+                    <div className="flex-1 truncate">
+                        <h1 className="text-sm md:text-base font-bold tracking-tight truncate">
                             {currentNav?.label ?? 'Life OS'}
                         </h1>
                     </div>
 
                     {/* Search button */}
                     <button
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm flex-shrink-0 w-8 md:w-auto md:min-w-[160px] justify-center md:justify-start"
                         onClick={() => setSearchOpen(true)}
-                        style={{ gap: 8, minWidth: 160, justifyContent: 'flex-start', color: 'var(--text-muted)' }}
+                        style={{ color: 'var(--text-muted)' }}
                     >
                         <Search size={14} />
-                        <span>Search</span>
-                        <span style={{ marginLeft: 'auto', fontSize: 11, background: 'var(--bg-card)', padding: '1px 6px', borderRadius: 4 }}>⌘K</span>
+                        <span className="hidden md:inline">Search</span>
+                        <span className="hidden md:inline ml-auto text-[11px] bg-[var(--bg-card)] px-1.5 py-0.5 rounded">⌘K</span>
                     </button>
 
                     {/* Notifications bell */}
@@ -234,7 +246,7 @@ export function AppShell({ children }: AppShellProps) {
                 </header>
 
                 {/* Page content */}
-                <main style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+                <main className="flex-1 overflow-auto main-content-area">
                     {children}
                 </main>
             </div>

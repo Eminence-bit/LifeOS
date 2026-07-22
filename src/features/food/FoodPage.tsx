@@ -24,7 +24,7 @@ function AddInventoryModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Inventory Item</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Eggs" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Quantity *</label><input className="input" type="number" min="0" step="any" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} required /></div>
                         <div><label className="label">Unit</label>
                             <select className="input" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}>
@@ -33,7 +33,7 @@ function AddInventoryModal({ onClose }: { onClose: () => void }) {
                         </div>
                         <div><label className="label">Min Qty</label><input className="input" type="number" min="0" step="any" value={form.minQuantity} onChange={e => setForm({ ...form, minQuantity: e.target.value })} placeholder="0" /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Store</label><input className="input" value={form.store} onChange={e => setForm({ ...form, store: e.target.value })} placeholder="e.g. Aldi, Lidl" /></div>
                         <div><label className="label">Expiry Date</label><input className="input" type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} /></div>
                     </div>
@@ -79,7 +79,7 @@ function EditInventoryModal({ item, onClose }: { item: InventoryItem; onClose: (
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Inventory Item</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Name *</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Eggs" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Quantity *</label><input className="input" type="number" min="0" step="any" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} required /></div>
                         <div><label className="label">Unit</label>
                             <select className="input" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}>
@@ -88,7 +88,7 @@ function EditInventoryModal({ item, onClose }: { item: InventoryItem; onClose: (
                         </div>
                         <div><label className="label">Min Qty</label><input className="input" type="number" min="0" step="any" value={form.minQuantity} onChange={e => setForm({ ...form, minQuantity: e.target.value })} placeholder="0" /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Store</label><input className="input" value={form.store} onChange={e => setForm({ ...form, store: e.target.value })} placeholder="e.g. Aldi, Lidl" /></div>
                         <div><label className="label">Expiry Date</label><input className="input" type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} /></div>
                     </div>
@@ -140,7 +140,7 @@ function AddRecipeModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Recipe</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Recipe name" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Prep (min)</label><input className="input" type="number" min="0" value={form.prepTime} onChange={e => setForm({ ...form, prepTime: +e.target.value })} /></div>
                         <div><label className="label">Cook (min)</label><input className="input" type="number" min="0" value={form.cookTime} onChange={e => setForm({ ...form, cookTime: +e.target.value })} /></div>
                         <div><label className="label">Servings</label><input className="input" type="number" min="1" value={form.servings} onChange={e => setForm({ ...form, servings: +e.target.value })} /></div>
@@ -148,7 +148,7 @@ function AddRecipeModal({ onClose }: { onClose: () => void }) {
                     {/* Nutrition stats */}
                     <div>
                         <label className="label">Nutrition (per serving)</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                             <div><input className="input" type="number" min="0" placeholder="Calories (kcal)" value={form.calories} onChange={e => setForm({ ...form, calories: e.target.value })} /></div>
                             <div><input className="input" type="number" min="0" placeholder="Protein (g)" value={form.protein} onChange={e => setForm({ ...form, protein: e.target.value })} /></div>
                             <div><input className="input" type="number" min="0" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm({ ...form, carbs: e.target.value })} /></div>
@@ -159,7 +159,7 @@ function AddRecipeModal({ onClose }: { onClose: () => void }) {
                     <div>
                         <label className="label">Ingredients</label>
                         {form.ingredients.map((ing, idx) => (
-                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: 8, marginBottom: 6 }}>
+                            <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_2fr] gap-2 mb-1.5">
                                 <input className="input" placeholder="Name" value={ing.name} onChange={e => {
                                     const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], name: e.target.value }; setForm({ ...form, ingredients: upd });
                                 }} />
@@ -250,7 +250,7 @@ function EditRecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => v
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Recipe</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Recipe name" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="label">Prep (min)</label><input className="input" type="number" min="0" value={form.prepTime} onChange={e => setForm({ ...form, prepTime: +e.target.value })} /></div>
                         <div><label className="label">Cook (min)</label><input className="input" type="number" min="0" value={form.cookTime} onChange={e => setForm({ ...form, cookTime: +e.target.value })} /></div>
                         <div><label className="label">Servings</label><input className="input" type="number" min="1" value={form.servings} onChange={e => setForm({ ...form, servings: +e.target.value })} /></div>
@@ -258,7 +258,7 @@ function EditRecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => v
                     {/* Nutrition stats */}
                     <div>
                         <label className="label">Nutrition (per serving)</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                             <div><input className="input" type="number" min="0" placeholder="Calories (kcal)" value={form.calories} onChange={e => setForm({ ...form, calories: e.target.value })} /></div>
                             <div><input className="input" type="number" min="0" placeholder="Protein (g)" value={form.protein} onChange={e => setForm({ ...form, protein: e.target.value })} /></div>
                             <div><input className="input" type="number" min="0" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm({ ...form, carbs: e.target.value })} /></div>
@@ -269,7 +269,7 @@ function EditRecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => v
                     <div>
                         <label className="label">Ingredients</label>
                         {form.ingredients.map((ing, idx) => (
-                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr', gap: 8, marginBottom: 6 }}>
+                            <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_2fr] gap-2 mb-1.5">
                                 <input className="input" placeholder="Name" value={ing.name} onChange={e => {
                                     const upd = [...form.ingredients]; upd[idx] = { ...upd[idx], name: e.target.value }; setForm({ ...form, ingredients: upd });
                                 }} />

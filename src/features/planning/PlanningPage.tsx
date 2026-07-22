@@ -33,7 +33,7 @@ function AddTaskModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Task</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Task title" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className="label">Priority</label>
                             <select className="input" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value as TaskPriority })}>
@@ -84,7 +84,7 @@ function EditTaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Task</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Task title" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className="label">Priority</label>
                             <select className="input" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value as TaskPriority })}>
@@ -93,7 +93,7 @@ function EditTaskModal({ task, onClose }: { task: Task; onClose: () => void }) {
                         </div>
                         <div><label className="label">Due Date</label><input className="input" type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Category</label><input className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Work, Personal" /></div>
                         <div>
                             <label className="label">Status</label>
@@ -129,7 +129,7 @@ function AddEventModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Event</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Event title" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Start *</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} required /></div>
                         <div><label className="label">End</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
                     </div>
@@ -170,7 +170,7 @@ function EditEventModal({ event, onClose }: { event: Event; onClose: () => void 
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Edit Event</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Event title" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Start *</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} required /></div>
                         <div><label className="label">End</label><input className="input" type={form.allDay ? 'date' : 'datetime-local'} value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
                     </div>
@@ -313,7 +313,7 @@ function AddGoalModal({ onClose }: { onClose: () => void }) {
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Learn Spanish B2" required /></div>
                     <div><label className="label">Description</label><textarea className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What does success look like?" /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Target Date</label><input className="input" type="date" value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></div>
                         <div><label className="label">Category</label><input className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Health, Career" /></div>
                     </div>
@@ -354,7 +354,7 @@ function EditGoalModal({ goal, onClose }: { goal: Goal; onClose: () => void }) {
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Title *</label><input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Learn Spanish B2" required /></div>
                     <div><label className="label">Description</label><textarea className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What does success look like?" /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Target Date</label><input className="input" type="date" value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></div>
                         <div><label className="label">Category</label><input className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="e.g. Health, Career" /></div>
                     </div>

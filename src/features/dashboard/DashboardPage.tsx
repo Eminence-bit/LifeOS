@@ -1151,7 +1151,7 @@ export function DashboardPage() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                             <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                                 🎯 <strong>Priority Focus:</strong> {topTask ? topTask.title : 'None selected. Add or check planning list.'}<br />
                                 🍽 <strong>Dinner target:</strong> {dinnerPlanned ? dinnerPlanned.name : 'No dinner scheduled.'}<br />
@@ -1215,10 +1215,10 @@ export function DashboardPage() {
             )}
 
             {/* Split layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20 }}>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
                 {/* LEFT COLUMN - Primary Today Operations (6-grid) */}
-                <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="lg:col-span-6 flex flex-col gap-5">
 
                     {/* Today's Mission progress */}
                     <div className="card" style={{ padding: 24 }}>
@@ -1590,7 +1590,7 @@ export function DashboardPage() {
                 </div>
 
                 {/* RIGHT COLUMN - Health Check & Inbox (6-grid) */}
-                <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="lg:col-span-6 flex flex-col gap-5">
 
                     {/* Life Pulse Radar Chart (System 1 & 2) */}
                     <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>

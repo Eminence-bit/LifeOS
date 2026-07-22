@@ -35,7 +35,7 @@ function AddTopicModal({ onClose }: { onClose: () => void }) {
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Learning Topic</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div><label className="label">Topic *</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. German A2, React Hooks" required /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Category</label>
                             <select className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value as LearningTopic['category'] })}>
                                 {['german', 'programming', 'course', 'book', 'other'].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
@@ -68,7 +68,7 @@ function AddVocabModal({ onClose }: { onClose: () => void }) {
             <div className="modal" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Add Vocabulary</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Word *</label><input className="input" value={form.word} onChange={e => setForm({ ...form, word: e.target.value })} placeholder="e.g. der Bahnhof" required /></div>
                         <div><label className="label">Translation *</label><input className="input" value={form.translation} onChange={e => setForm({ ...form, translation: e.target.value })} placeholder="e.g. the train station" required /></div>
                     </div>
@@ -102,7 +102,7 @@ function LogStudyModal({ onClose }: { onClose: () => void }) {
             <div className="modal" onClick={e => e.stopPropagation()}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20 }}>Log Study Session</h3>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">Duration (min)</label><input className="input" type="number" min="1" value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} /></div>
                         <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                     </div>
