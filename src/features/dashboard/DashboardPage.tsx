@@ -17,10 +17,11 @@ import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { fetchAIDashboardAdvice } from '@/services/aiService';
 import type { AIDashboardAdvice, AISuggestion } from '@/services/aiService';
 
-function RadarChart({ scores }: { scores: { name: string; value: number; color: string }[] }) {
+function RadarChart({ scores, details }: { scores: { name: string; value: number; color: string }[]; details: Record<string, string> }) {
+    const [hoveredSector, setHoveredSector] = useState<string | null>(null);
     const cx = 110;
     const cy = 100;
-    const r = 70;
+    const r = 80; // Enlarged from 70 to 80
     const pointsCount = scores.length;
 
     // Level lines (25%, 50%, 75%, 100%)
@@ -45,21 +46,30 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
     }).join(' ');
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '14px 0' }}>
-            <svg width="220" height="200" style={{ overflow: 'visible' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '14px 0', width: '100%' }}>
+            <svg width="240" height="220" style={{ overflow: 'visible' }}>
+                {/* Translucent complete outline backdrop (100% boundary limit) */}
+                <polygon
+                    points={levelLines[levelLines.length - 1]}
+                    fill="rgba(124, 58, 237, 0.25)"
+                    stroke="var(--border-strong)"
+                    strokeWidth="1.2"
+                    strokeDasharray="3 3"
+                />
+
                 {/* Level Grid Polygons */}
                 {levelLines.map((pts, idx) => (
                     <polygon
                         key={idx}
                         points={pts}
                         fill="none"
-                        stroke="rgba(255, 255, 255, 0.08)"
-                        strokeWidth="1"
+                        stroke="var(--border)"
+                        strokeWidth="0.8"
                     />
                 ))}
 
                 {/* Axis lines */}
-                {scores.map((_, i) => {
+                {scores.map((s, i) => {
                     const angle = (i * 2 * Math.PI) / pointsCount - Math.PI / 2;
                     const x = cx + r * Math.cos(angle);
                     const y = cy + r * Math.sin(angle);
@@ -70,8 +80,9 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
                             y1={cy}
                             x2={x}
                             y2={y}
-                            stroke="rgba(255, 255, 255, 0.1)"
-                            strokeWidth="1"
+                            stroke={hoveredSector === s.name.toLowerCase() ? s.color : "var(--border)"}
+                            strokeWidth={hoveredSector === s.name.toLowerCase() ? "2" : "1"}
+                            style={{ transition: 'stroke-width 0.2s, stroke 0.2s' }}
                         />
                     );
                 })}
@@ -79,9 +90,9 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
                 {/* User Data Polygon */}
                 <polygon
                     points={userPts}
-                    fill="rgba(124, 58, 237, 0.25)"
+                    fill="rgba(124, 58, 237, 0.4)"
                     stroke="var(--accent-violet-light)"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                 />
 
                 {/* Score dots */}
@@ -95,8 +106,11 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
                             key={i}
                             cx={x}
                             cy={y}
-                            r="4"
+                            r={hoveredSector === s.name.toLowerCase() ? "6" : "4"}
                             fill={s.color}
+                            style={{ transition: 'r 0.2s' }}
+                            onMouseEnter={() => setHoveredSector(s.name.toLowerCase())}
+                            onMouseLeave={() => setHoveredSector(null)}
                         />
                     );
                 })}
@@ -111,15 +125,23 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
                     if (Math.cos(angle) > 0.1) textAnchor = 'start';
                     else if (Math.cos(angle) < -0.1) textAnchor = 'end';
 
+                    const isHovered = hoveredSector === s.name.toLowerCase();
+
                     return (
-                        <g key={i}>
+                        <g
+                            key={i}
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredSector(s.name.toLowerCase())}
+                            onMouseLeave={() => setHoveredSector(null)}
+                        >
                             <text
                                 x={x}
                                 y={y}
                                 textAnchor={textAnchor}
-                                fill="var(--text-secondary)"
-                                fontSize="10.5"
+                                fill={isHovered ? s.color : "var(--text-secondary)"}
+                                fontSize={isHovered ? "11.5" : "10.5"}
                                 fontWeight="700"
+                                style={{ transition: 'fill 0.2s, font-size 0.2s' }}
                             >
                                 {s.name}
                             </text>
@@ -136,6 +158,28 @@ function RadarChart({ scores }: { scores: { name: string; value: number; color: 
                     );
                 })}
             </svg>
+
+            {/* Hover details explanation tooltip */}
+            {hoveredSector && (
+                <div style={{
+                    marginTop: 18,
+                    padding: '10px 14px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--border-soft)',
+                    borderLeft: `3px solid ${scores.find(s => s.name.toLowerCase() === hoveredSector)?.color || 'var(--accent-violet)'}`,
+                    borderRadius: '4px 8px 8px 4px',
+                    fontSize: 11.5,
+                    width: '100%',
+                    textAlign: 'left'
+                }}>
+                    <strong style={{ textTransform: 'capitalize', color: 'var(--text-primary)' }}>
+                        {hoveredSector} Score Analysis
+                    </strong>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                        {details[hoveredSector]}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -168,8 +212,9 @@ export function DashboardPage() {
     const [customFocusTarget, setCustomFocusTarget] = useState('');
     const [secondBrainTab, setSecondBrainTab] = useState<'notes' | 'ideas' | 'bookmarks'>('notes');
     const [manualEnergyRating, setManualEnergyRating] = useState<number | null>(null);
-    const [replayTab, setReplayTab] = useState<'today' | 'month'>('today');
+    const [replayTab, setReplayTab] = useState<'today' | 'weekly' | 'monthly' | 'yearly'>('today');
     const [dailyMood, setDailyMood] = useState<string>('😊');
+    const [showDiaryModal, setShowDiaryModal] = useState(false);
 
     // ── AI Suggestions & Analytics State ──
     const [aiAdvice, setAiAdvice] = useState<AIDashboardAdvice | null>(null);
@@ -314,6 +359,81 @@ export function DashboardPage() {
 
     const prioritiesCount = filteredTasks.filter(t => t.status !== 'done' && t.dueDate === todayVal).length;
     const mealsPlannedCount = mealPlan.filter(m => m.date === todayVal).length;
+
+    // ── Weekly Aggregates ──
+    const weeklyStudyMinutes = useMemo(() => {
+        return studySessions.filter(s => daysSince(s.date) <= 7).reduce((sum, s) => sum + s.duration, 0) + todayStudyMinutes;
+    }, [studySessions, todayStudyMinutes]);
+
+    const weeklyWorkouts = useMemo(() => {
+        return workoutLogs.filter(w => daysSince(w.date) <= 7).length;
+    }, [workoutLogs]);
+
+    const weeklyExpenses = useMemo(() => {
+        return expenses.filter(e => daysSince(e.date) <= 7).reduce((sum, e) => sum + e.amount, 0);
+    }, [expenses]);
+
+    const weeklyWaterDays = useMemo(() => {
+        const map: Record<string, number> = {};
+        waterIntakes.filter(w => daysSince(w.date) <= 7).forEach(w => {
+            map[w.date] = (map[w.date] || 0) + w.amount;
+        });
+        return Object.values(map).filter(amount => amount >= 2000).length;
+    }, [waterIntakes]);
+
+    const weeklySleepQuality = useMemo(() => {
+        const last7 = sleepLogs.filter(s => daysSince(s.date) <= 7);
+        return last7.length > 0 ? (last7.reduce((sum, s) => sum + s.quality, 0) / last7.length).toFixed(1) : '4.2';
+    }, [sleepLogs]);
+
+    // ── Monthly Aggregates ──
+    const monthlyStudyMinutes = useMemo(() => {
+        const curM = todayVal.slice(0, 7);
+        return studySessions.filter(s => s.date.startsWith(curM)).reduce((sum, s) => sum + s.duration, 0) + todayStudyMinutes;
+    }, [studySessions, todayVal, todayStudyMinutes]);
+
+    const monthlyWorkouts = useMemo(() => {
+        const curM = todayVal.slice(0, 7);
+        return workoutLogs.filter(w => w.date.startsWith(curM)).length;
+    }, [workoutLogs, todayVal]);
+
+    const monthlyMeals = useMemo(() => {
+        const curM = todayVal.slice(0, 7);
+        return mealPlan.filter(m => m.date.startsWith(curM)).length;
+    }, [mealPlan, todayVal]);
+
+    const monthlySleepQuality = useMemo(() => {
+        const curM = todayVal.slice(0, 7);
+        const thisMonthSleep = sleepLogs.filter(s => s.date.startsWith(curM));
+        return thisMonthSleep.length > 0 ? (thisMonthSleep.reduce((sum, s) => sum + s.quality, 0) / thisMonthSleep.length).toFixed(1) : '4.3';
+    }, [sleepLogs, todayVal]);
+
+    // ── Yearly Aggregates ──
+    const yearlyStudyMinutes = useMemo(() => {
+        const curY = todayVal.slice(0, 4);
+        return studySessions.filter(s => s.date.startsWith(curY)).reduce((sum, s) => sum + s.duration, 0) + todayStudyMinutes;
+    }, [studySessions, todayVal, todayStudyMinutes]);
+
+    const yearlyWorkouts = useMemo(() => {
+        const curY = todayVal.slice(0, 4);
+        return workoutLogs.filter(w => w.date.startsWith(curY)).length;
+    }, [workoutLogs, todayVal]);
+
+    const yearlyExpenses = useMemo(() => {
+        const curY = todayVal.slice(0, 4);
+        return expenses.filter(e => e.date.startsWith(curY)).reduce((sum, e) => sum + e.amount, 0);
+    }, [expenses, todayVal]);
+
+    const yearlyMeals = useMemo(() => {
+        const curY = todayVal.slice(0, 4);
+        return mealPlan.filter(m => m.date.startsWith(curY)).length;
+    }, [mealPlan, todayVal]);
+
+    const yearlySleepQuality = useMemo(() => {
+        const curY = todayVal.slice(0, 4);
+        const thisYearSleep = sleepLogs.filter(s => s.date.startsWith(curY));
+        return thisYearSleep.length > 0 ? (thisYearSleep.reduce((sum, s) => sum + s.quality, 0) / thisYearSleep.length).toFixed(1) : '4.4';
+    }, [sleepLogs, todayVal]);
 
     // ── Dynamic Greeting & Pacing Stats (A) ──
     const greetingInfo = useMemo(() => {
@@ -585,6 +705,15 @@ export function DashboardPage() {
 
         const overall = Math.round(scores.reduce((sum, s) => sum + s.value, 0) / scores.length);
 
+        const details = {
+            health: `• Workout: ${todayWorkout ? 'Logged (+40%)' : 'None (+0%)'}\n• Water: ${todayWater}ml / 2000ml (Max +30%)\n• Active Burn: ${activeCaloriesBurned} kcal (Max +30% at 400 kcal)\nCurrent Score: ${healthScore}%`,
+            finance: `• Spent: ₹${totalMonthExpenses} of ₹${budgetLimitTotal}\n• Status: ${budgetStatus}\nCurrent Score: ${financeScore}%`,
+            learning: `• German study: ${todayStudyMinutes} mins / ${dailyGoalMinutes} mins target\nCurrent Score: ${learningScore}%`,
+            nutrition: `• Pre-planned meals: ${plannedMealsCount} today\n• Burn boost: ${activeCaloriesBurned > 0 ? 'Active (+10%)' : 'Inactive (+0%)'}\nCurrent Score: ${nutritionScore}%`,
+            career: `• Bio settings: ${settings.userProfile?.bio ? 'Completed' : 'Missing'}\nCurrent Score: ${careerScore}%`,
+            documents: `• Valid files: ${validDocs} of ${documents.length} total\nCurrent Score: ${docsScore}%`
+        };
+
         // Compute coaching text based on the weakest module
         const sorted = [...scores].sort((a, b) => a.value - b.value);
         const weakest = sorted[0];
@@ -602,8 +731,8 @@ export function DashboardPage() {
             coachingText = 'All areas are balanced. Protect your streak goals to maintain healthy performance scores.';
         }
 
-        return { scores, overall, coachingText };
-    }, [todayWorkout, todayWater, budgetLimitTotal, totalMonthExpenses, todayStudyMinutes, dailyGoalMinutes, mealPlan, todayVal, documents, settings.userProfile]);
+        return { scores, overall, coachingText, details };
+    }, [todayWorkout, todayWater, budgetLimitTotal, totalMonthExpenses, todayStudyMinutes, dailyGoalMinutes, mealPlan, todayVal, documents, settings.userProfile, activeCaloriesBurned, budgetStatus]);
 
     // ── Smarter Recommendations ──
     const coachSuggestions = useMemo(() => {
@@ -1088,8 +1217,8 @@ export function DashboardPage() {
             {/* Split layout */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20 }}>
 
-                {/* LEFT COLUMN - Primary Today Operations (8-grid) */}
-                <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* LEFT COLUMN - Primary Today Operations (6-grid) */}
+                <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                     {/* Today's Mission progress */}
                     <div className="card" style={{ padding: 24 }}>
@@ -1232,395 +1361,6 @@ export function DashboardPage() {
                             </div>
                         </div>
                     )}
-
-                    {/* Intelligent Suggestions */}
-                    <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Zap size={16} color="var(--accent-amber)" />
-                                <h4 style={{ fontWeight: 700, fontSize: 14 }}>Intelligent Suggestions</h4>
-                                {aiAdvice && (
-                                    <span style={{
-                                        fontSize: 9,
-                                        padding: '2px 6px',
-                                        borderRadius: 4,
-                                        background: aiAdvice.isMock ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)',
-                                        color: aiAdvice.isMock ? 'var(--text-muted)' : 'var(--accent-green)',
-                                        fontWeight: 600
-                                    }}>
-                                        {aiAdvice.isMock ? 'Simulated Co-Pilot' : 'Gemini AI Active'}
-                                    </span>
-                                )}
-                            </div>
-                            <button
-                                onClick={() => loadAIAdvice(true)}
-                                disabled={aiLoading}
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: 4, display: 'flex', alignItems: 'center', gap: 4, opacity: aiLoading ? 0.6 : 1 }}
-                                title="Refresh AI Insights"
-                            >
-                                <style>{`
-                                    @keyframes ai-spin {
-                                        from { transform: rotate(0deg); }
-                                        to { transform: rotate(360deg); }
-                                    }
-                                    .ai-spinning {
-                                        animation: ai-spin 1.5s linear infinite;
-                                    }
-                                `}</style>
-                                <RefreshCw size={14} className={aiLoading ? 'ai-spinning' : ''} />
-                            </button>
-                        </div>
-                        {aiLoading ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div style={{ height: 35, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
-                                <div style={{ height: 35, width: '90%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
-                            </div>
-                        ) : renderedSuggestions.length === 0 ? (
-                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No suggestions at this moment. Daily objectives balanced.</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {renderedSuggestions.map((suggestion) => (
-                                    <div key={suggestion.id} className={`alert-chip alert-chip-${suggestion.type}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                                            <span style={{ fontSize: 13 }}>{suggestion.msg}</span>
-                                        </div>
-                                        {suggestion.actionLabel && (
-                                            <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => handleSuggestionAction(suggestion)}>
-                                                {suggestion.actionLabel}
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {aiError && (
-                            <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 8 }}>{aiError}</div>
-                        )}
-                    </div>
-
-                    {/* Predictions Portal */}
-                    <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                            <Award size={16} color="var(--accent-violet-light)" />
-                            <h4 style={{ fontWeight: 700, fontSize: 14 }}>Proactive Life Predictions</h4>
-                        </div>
-                        {aiLoading ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div style={{ height: 20, width: '80%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
-                                <div style={{ height: 20, width: '85%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {renderedPredictions.map((pred, i) => (
-                                    <div key={i} style={{
-                                        display: 'flex', alignItems: 'flex-start', gap: 10,
-                                        background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10,
-                                        borderLeft: '3px solid var(--accent-violet)'
-                                    }}>
-                                        <Info size={14} style={{ color: 'var(--accent-violet)', marginTop: 2, flexShrink: 0 }} />
-                                        <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{pred}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Life Roadmap Milestones */}
-                    <div className="card" style={{ padding: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <div>
-                                <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Target size={16} /> Life Roadmap Timeline
-                                </h4>
-                                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Visualize future milestones and prerequisites status</p>
-                            </div>
-                        </div>
-
-                        {/* Roadmap List styling */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingLeft: 10, position: 'relative' }}>
-                            {milestones.map((m, i) => {
-                                const symbol = {
-                                    done: { text: '✓', color: 'var(--accent-green)', bg: 'rgba(16, 185, 129, 0.1)', border: 'var(--accent-green)' },
-                                    progress: { text: '⚡', color: 'var(--accent-violet)', bg: 'rgba(124, 58, 237, 0.1)', border: 'var(--accent-violet)' },
-                                    pending: { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' },
-                                    locked: { text: '🔒', color: 'var(--accent-red)', bg: 'rgba(239, 68, 68, 0.1)', border: 'var(--accent-red)' },
-                                    future: { text: '⏰', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' }
-                                }[m.status as 'done' | 'progress' | 'pending' | 'locked' | 'future'] || { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' };
-
-                                return (
-                                    <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'center', position: 'relative' }}>
-                                        {i < milestones.length - 1 && (
-                                            <div style={{
-                                                position: 'absolute', top: 32, left: 16, width: 2, height: 18,
-                                                background: 'var(--border-soft)'
-                                            }} />
-                                        )}
-                                        <div style={{
-                                            width: 32, height: 32, borderRadius: '50%',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            border: `1.5px solid ${symbol.border}`, background: symbol.bg,
-                                            fontWeight: 700, fontSize: 13, color: symbol.color, flexShrink: 0
-                                        }}>
-                                            {symbol.text}
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 13, fontWeight: 700 }}>{m.label}</span>
-                                            <span style={{
-                                                fontSize: 9, textTransform: 'uppercase', color: symbol.color,
-                                                fontWeight: 800, marginLeft: 10, background: symbol.bg, padding: '2px 6px', borderRadius: 4
-                                            }}>{m.status}</span>
-                                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{m.desc}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* RIGHT COLUMN - Health Check & Inbox (4-grid) */}
-                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                    {/* Life Pulse Radar Chart (System 1 & 2) */}
-                    <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Award size={16} color="var(--accent-violet-light)" /> Life Pulse
-                            </h4>
-                        </div>
-
-                        {/* Central Globe, Percentage, and Status */}
-                        <div style={{ textAlign: 'center', margin: '4px 0' }}>
-                            <div style={{ fontSize: 32, marginBottom: 4 }}>🌎</div>
-                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
-                                {lifePulse.overall}%
-                            </div>
-                            <div style={{
-                                fontSize: 12.5,
-                                fontWeight: 700,
-                                color: lifePulse.overall >= 90 ? 'var(--accent-green)' :
-                                    lifePulse.overall >= 75 ? 'var(--accent-blue)' :
-                                        lifePulse.overall >= 60 ? 'var(--accent-amber)' :
-                                            'var(--accent-red)'
-                            }}>
-                                {lifePulse.overall >= 90 ? 'Excellent Life' :
-                                    lifePulse.overall >= 75 ? 'Balanced Life' :
-                                        lifePulse.overall >= 60 ? 'Recovering Life' :
-                                            lifePulse.overall >= 40 ? 'Action Needed' : 'Critical State'}
-                            </div>
-                        </div>
-
-                        {/* Visual SVG Radar Chart */}
-                        <RadarChart scores={lifePulse.scores} />
-
-                        <div style={{
-                            padding: 10, background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)',
-                            borderRadius: 8, fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4
-                        }}>
-                            💡 <strong>Coach Advice:</strong> {lifePulse.coachingText}
-                        </div>
-                    </div>
-
-                    {/* Momentum Tracker (System 1 Simplified) */}
-                    <div className="card" style={{ padding: 20, background: 'rgba(245, 158, 11, 0.02)', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
-                        <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                            <Flame size={16} color="var(--accent-amber)" /> Momentum
-                        </h4>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: 'var(--accent-amber)',
-                                textTransform: 'capitalize'
-                            }}>
-                                {momentumScore >= 80 ? 'Unstoppable' :
-                                    momentumScore >= 60 ? 'Steadily Acting' :
-                                        momentumScore >= 40 ? 'Recovering' : 'Stalled'}
-                            </span>
-                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
-                                {momentumScore}%
-                            </div>
-                        </div>
-
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, marginTop: 8 }}>
-                            Rolling 7-day habit target compliance
-                        </p>
-                    </div>
-
-                    {/* Achievements Unlocked (System 3 Achievement Engine) */}
-                    <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Award size={16} color="var(--accent-cyan)" /> Achievements Unlocked
-                            </h4>
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Habit Recognition</span>
-                        </div>
-
-                        {achievements.length === 0 ? (
-                            <div style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-                                No achievements unlocked yet. Secure habits to build status!
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 200, overflowY: 'auto' }}>
-                                {achievements.map((ach) => (
-                                    <div key={ach.title} style={{ background: 'var(--bg-secondary)', padding: 12, borderRadius: 10, borderLeft: `3px solid ${ach.color}` }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{ach.title}</span>
-                                            <span style={{ fontSize: 9, background: ach.color, color: 'black', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>{ach.badge}</span>
-                                        </div>
-                                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{ach.desc}</p>
-                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                            {ach.gains.map(g => (
-                                                <span key={g} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 5px', borderRadius: 4 }}>
-                                                    {g}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Nightly Life Replay Card (Killer Feature) */}
-                    <div className="card" style={{ padding: 20 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <RefreshCw size={16} color="var(--accent-violet-light)" /> Life Replay
-                            </h4>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                                {(['today', 'month'] as const).map((rpTab) => (
-                                    <button
-                                        key={rpTab}
-                                        className="btn btn-ghost btn-sm"
-                                        style={{
-                                            padding: '2px 6px',
-                                            fontSize: 10,
-                                            height: 'auto',
-                                            background: replayTab === rpTab ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
-                                            color: replayTab === rpTab ? 'var(--accent-violet-light)' : 'var(--text-muted)'
-                                        }}
-                                        onClick={() => setReplayTab(rpTab)}
-                                    >
-                                        {rpTab === 'today' ? 'Tonight' : 'Monthly Report'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {replayTab === 'today' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
-                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Today's Balance</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>🏋️ Workout logged</span>
-                                            <span>{todayWorkout ? '🟢 ✓' : '🔴 Pending'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>📚 German Study Target</span>
-                                            <span>{studyGoalMet ? '🟢 ✓' : todayStudyMinutes > 0 ? '🟡 In Progress' : '🔴 Pending'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>💧 Water Target met</span>
-                                            <span>{waterGoalMet ? '🟢 ✓' : '🔴 Pending'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>💳 Budget Condition</span>
-                                            <span style={{ color: budgetStatus === 'Budget is healthy' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                                                {budgetStatus === 'Budget is healthy' ? 'Good' : 'Tight'}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>🍳 Meals Planned Today</span>
-                                            <span>{mealPlan.filter(m => m.date === todayVal).length > 0 ? '🟢 Done' : '🔴 Pending'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                                            <span>😊 Rate Your Mood</span>
-                                            <div style={{ display: 'flex', gap: 4 }}>
-                                                {['😢', '😐', '🙂', '😊', '🤩'].map((mood) => (
-                                                    <button
-                                                        key={mood}
-                                                        style={{
-                                                            background: dailyMood === mood ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                                            border: 'none',
-                                                            fontSize: 14,
-                                                            cursor: 'pointer',
-                                                            padding: '2px 4px',
-                                                            borderRadius: 4
-                                                        }}
-                                                        onClick={() => setDailyMood(mood)}
-                                                    >
-                                                        {mood}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%)',
-                                    border: '1px solid var(--border-soft)',
-                                    padding: 12,
-                                    borderRadius: 10
-                                }}>
-                                    <div style={{ fontSize: 10, color: 'var(--accent-violet-light)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Today's Highlight</div>
-                                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                                        {todayWorkout && waterGoalMet ? "You successfully protected your fitness and hydration levels today, locking double green checkmarks!" :
-                                            studyGoalMet ? `You advanced your German language goal to a ${streak}-day study streak today!` :
-                                                "Maintain your focus elements. Finish one primary task to spark positive momentum today."}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-violet-light)' }}>
-                                        July 2026 Life Report
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>📚 Total Study:</span>
-                                            <strong>{studySessions.reduce((sum, s) => sum + s.duration, 0) + todayStudyMinutes} mins</strong>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>🏋️ Workouts log:</span>
-                                            <strong>{workoutLogs.length} sessions</strong>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>💰 Budget Deficit:</span>
-                                            <strong style={{ color: totalMonthExpenses < budgetLimitTotal ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                                                {totalMonthExpenses < budgetLimitTotal ? `Under by ₹${budgetLimitTotal - totalMonthExpenses}` : `Over limit`}
-                                            </strong>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Planned Meals:</span>
-                                            <strong>{mealPlan.length} meals</strong>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Average Sleep Quality:</span>
-                                            <strong>
-                                                {sleepLogs.length > 0 ? (sleepLogs.reduce((sum, s) => sum + s.quality, 0) / sleepLogs.length).toFixed(1) : '8.5'}/5.0
-                                            </strong>
-                                        </div>
-                                        <hr style={{ border: 'none', borderTop: '1px solid var(--border-soft)', margin: '6px 0' }} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                                            <span>Life Pulse average:</span>
-                                            <span style={{ color: 'var(--accent-violet-light)' }}>{lifePulse.overall}%</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                                            <span>Momentum average:</span>
-                                            <span style={{ color: 'var(--accent-amber)' }}>{momentumScore}%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Second Brain Inbox - Upgraded Category view */}
                     <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1848,7 +1588,576 @@ export function DashboardPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* RIGHT COLUMN - Health Check & Inbox (6-grid) */}
+                <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                    {/* Life Pulse Radar Chart (System 1 & 2) */}
+                    <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Award size={16} color="var(--accent-violet-light)" /> Life Pulse
+                            </h4>
+                        </div>
+
+                        {/* Central Globe, Percentage, and Status */}
+                        <div style={{ textAlign: 'center', margin: '4px 0' }}>
+                            <div style={{ fontSize: 32, marginBottom: 4 }}>🌎</div>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
+                                {lifePulse.overall}%
+                            </div>
+                            <div style={{
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                color: lifePulse.overall >= 90 ? 'var(--accent-green)' :
+                                    lifePulse.overall >= 75 ? 'var(--accent-blue)' :
+                                        lifePulse.overall >= 60 ? 'var(--accent-amber)' :
+                                            'var(--accent-red)'
+                            }}>
+                                {lifePulse.overall >= 90 ? 'Excellent Life' :
+                                    lifePulse.overall >= 75 ? 'Balanced Life' :
+                                        lifePulse.overall >= 60 ? 'Recovering Life' :
+                                            lifePulse.overall >= 40 ? 'Action Needed' : 'Critical State'}
+                            </div>
+                        </div>
+
+                        {/* Visual SVG Radar Chart */}
+                        <RadarChart scores={lifePulse.scores} details={lifePulse.details} />
+
+                        <div style={{
+                            padding: 12,
+                            background: 'rgba(124, 58, 237, 0.03)',
+                            borderLeft: '4px solid var(--accent-violet-light)',
+                            borderRadius: '0 8px 8px 0',
+                            fontSize: 11.5,
+                            color: 'var(--text-secondary)',
+                            lineHeight: 1.5,
+                            marginTop: 10,
+                            display: 'flex',
+                            gap: 10,
+                            alignItems: 'flex-start'
+                        }}>
+                            <Lightbulb size={18} style={{ color: 'var(--accent-violet-light)', flexShrink: 0, marginTop: 2 }} />
+                            <div>
+                                <strong style={{ color: 'var(--text-primary)' }}>Coach Insight:</strong> {lifePulse.coachingText}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Momentum Tracker (System 1 Simplified) */}
+                    <div className="card" style={{ padding: 20, background: 'rgba(245, 158, 11, 0.02)', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
+                        <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                            <Flame size={16} color="var(--accent-amber)" /> Momentum
+                        </h4>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 16, fontWeight: 800 }}>↗</span>
+                                <span style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: 'var(--accent-amber)',
+                                    textTransform: 'capitalize'
+                                }}>
+                                    {momentumScore >= 80 ? 'Unstoppable' :
+                                        momentumScore >= 60 ? 'Steadily Acting' :
+                                            momentumScore >= 40 ? 'Recovering' : 'Stalled'}
+                                </span>
+                            </div>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>
+                                {momentumScore}%
+                            </div>
+                            <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                                +{Math.max(2, Math.round(momentumScore * 0.15))}% this week
+                            </span>
+                        </div>
+
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, marginTop: 8 }}>
+                            Rolling 7-day habit target compliance
+                        </p>
+                    </div>
+
+                    {/* Achievements Unlocked (System 3 Achievement Engine) */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Award size={16} color="var(--accent-cyan)" /> Achievements Unlocked
+                            </h4>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Habit Recognition</span>
+                        </div>
+
+                        {achievements.length === 0 ? (
+                            <div style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                                No achievements unlocked yet. Secure habits to build status!
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 200, overflowY: 'auto' }}>
+                                {achievements.map((ach) => (
+                                    <div key={ach.title} style={{ background: 'var(--bg-secondary)', padding: 12, borderRadius: 10, borderLeft: `3px solid ${ach.color}` }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{ach.title}</span>
+                                            <span style={{ fontSize: 9, background: ach.color, color: 'black', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>{ach.badge}</span>
+                                        </div>
+                                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{ach.desc}</p>
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                            {ach.gains.map(g => (
+                                                <span key={g} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 5px', borderRadius: 4 }}>
+                                                    {g}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Nightly Life Replay Card (Killer Feature) */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <RefreshCw size={16} color="var(--accent-violet-light)" /> Life Replay
+                            </h4>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {(['today', 'weekly', 'monthly', 'yearly'] as const).map((rpTab) => (
+                                    <button
+                                        key={rpTab}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{
+                                            padding: '2px 6px',
+                                            fontSize: 10,
+                                            height: 'auto',
+                                            background: replayTab === rpTab ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
+                                            color: replayTab === rpTab ? 'var(--accent-violet-light)' : 'var(--text-muted)'
+                                        }}
+                                        onClick={() => setReplayTab(rpTab)}
+                                    >
+                                        {rpTab === 'today' ? 'Tonight' :
+                                            rpTab === 'weekly' ? 'Weekly' :
+                                                rpTab === 'monthly' ? 'Monthly' :
+                                                    'Yearly'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {replayTab === 'today' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Today's Balance</span>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            style={{ padding: '2px 6px', fontSize: 10, height: 'auto', border: '1px solid var(--border-soft)' }}
+                                            onClick={() => setShowDiaryModal(true)}
+                                        >
+                                            📖 View Diary
+                                        </button>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workout logged</span>
+                                            <span>{todayWorkout ? '🟢 ✓' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 German Study Target</span>
+                                            <span>{studyGoalMet ? '🟢 ✓' : todayStudyMinutes > 0 ? '🟡 In Progress' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💧 Water Target met</span>
+                                            <span>{waterGoalMet ? '🟢 ✓' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💳 Budget Condition</span>
+                                            <span style={{ color: budgetStatus === 'Budget is healthy' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                                                {budgetStatus === 'Budget is healthy' ? 'Good' : 'Tight'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🍳 Meals Planned Today</span>
+                                            <span>{mealPlan.filter(m => m.date === todayVal).length > 0 ? '🟢 Done' : '🔴 Pending'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                            <span>😊 Rate Your Mood</span>
+                                            <div style={{ display: 'flex', gap: 4 }}>
+                                                {['😢', '😐', '🙂', '😊', '🤩'].map((mood) => (
+                                                    <button
+                                                        key={mood}
+                                                        style={{
+                                                            background: dailyMood === mood ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                                            border: 'none',
+                                                            fontSize: 14,
+                                                            cursor: 'pointer',
+                                                            padding: '2px 4px',
+                                                            borderRadius: 4
+                                                        }}
+                                                        onClick={() => setDailyMood(mood)}
+                                                    >
+                                                        {mood}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%)',
+                                    border: '1px solid var(--border-soft)',
+                                    padding: 12,
+                                    borderRadius: 10
+                                }}>
+                                    <div style={{ fontSize: 10, color: 'var(--accent-violet-light)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Today's Highlight</div>
+                                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                        {todayWorkout && waterGoalMet ? "You successfully protected your fitness and hydration levels today, locking double green checkmarks!" :
+                                            studyGoalMet ? `You advanced your German language goal to a ${streak}-day study streak today!` :
+                                                "Maintain your focus elements. Finish one primary task to spark positive momentum today."}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : replayTab === 'weekly' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-violet-light)' }}>
+                                        Weekly Performance Report
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 Weekly Study:</span>
+                                            <strong>{weeklyStudyMinutes} mins</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workouts:</span>
+                                            <strong>{weeklyWorkouts} sessions</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💳 Weekly Spend:</span>
+                                            <strong>{formatCurrency(weeklyExpenses, settings.currency)}</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💧 Water Shield days:</span>
+                                            <strong>{weeklyWaterDays} / 7 days</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>😴 Weekly Sleep Quality:</span>
+                                            <strong>{weeklySleepQuality}/5.0</strong>
+                                        </div>
+                                        <hr style={{ border: 'none', borderTop: '1px solid var(--border-soft)', margin: '6px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Rolling Life Pulse:</span>
+                                            <span style={{ color: 'var(--accent-violet-light)' }}>{lifePulse.overall}%</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Weekly Momentum Avg:</span>
+                                            <span style={{ color: 'var(--accent-amber)' }}>{momentumScore}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : replayTab === 'monthly' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-violet-light)' }}>
+                                        {format(today, 'MMMM yyyy')} Life Report
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 Total Study:</span>
+                                            <strong>{monthlyStudyMinutes} mins</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workouts:</span>
+                                            <strong>{monthlyWorkouts} sessions</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💳 Month Budget:</span>
+                                            <strong style={{ color: totalMonthExpenses < budgetLimitTotal ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                                                {totalMonthExpenses < budgetLimitTotal ? `Under by ${formatCurrency(budgetLimitTotal - totalMonthExpenses, settings.currency)}` : `Over limit`}
+                                            </strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🍲 Planned Meals:</span>
+                                            <strong>{monthlyMeals} meals</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>😴 Mean Sleep Quality:</span>
+                                            <strong>{monthlySleepQuality}/5.0</strong>
+                                        </div>
+                                        <hr style={{ border: 'none', borderTop: '1px solid var(--border-soft)', margin: '6px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Life Pulse average:</span>
+                                            <span style={{ color: 'var(--accent-violet-light)' }}>{lifePulse.overall}%</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Momentum average:</span>
+                                            <span style={{ color: 'var(--accent-amber)' }}>{momentumScore}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: 14, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-violet-light)' }}>
+                                        {format(today, 'yyyy')} Annual Review
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>📚 Annual Study:</span>
+                                            <strong>
+                                                {Math.floor(yearlyStudyMinutes / 60)} hrs {yearlyStudyMinutes % 60} mins
+                                            </strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🏋️ Workouts completed:</span>
+                                            <strong>{yearlyWorkouts} sessions</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>💳 Annual Spending:</span>
+                                            <strong>{formatCurrency(yearlyExpenses, settings.currency)}</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>🍲 Meals Cooked/Planned:</span>
+                                            <strong>{yearlyMeals} meals</strong>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>😴 Yearly Sleep Health:</span>
+                                            <strong>{yearlySleepQuality}/5.0</strong>
+                                        </div>
+                                        <hr style={{ border: 'none', borderTop: '1px solid var(--border-soft)', margin: '6px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Annual Life Pulse:</span>
+                                            <span style={{ color: 'var(--accent-violet-light)' }}>{lifePulse.overall}%</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>Yearly Momentum Avg:</span>
+                                            <span style={{ color: 'var(--accent-amber)' }}>{momentumScore}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Intelligent Suggestions */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Zap size={16} color="var(--accent-amber)" />
+                                <h4 style={{ fontWeight: 700, fontSize: 14 }}>Intelligent Suggestions</h4>
+                                {aiAdvice && (
+                                    <span style={{
+                                        fontSize: 9,
+                                        padding: '2px 6px',
+                                        borderRadius: 4,
+                                        background: aiAdvice.isMock ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)',
+                                        color: aiAdvice.isMock ? 'var(--text-muted)' : 'var(--accent-green)',
+                                        fontWeight: 600
+                                    }}>
+                                        {aiAdvice.isMock ? 'Simulated Co-Pilot' : 'Gemini AI Active'}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => loadAIAdvice(true)}
+                                disabled={aiLoading}
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: 4, display: 'flex', alignItems: 'center', gap: 4, opacity: aiLoading ? 0.6 : 1 }}
+                                title="Refresh AI Insights"
+                            >
+                                <style>{`
+                                    @keyframes ai-spin {
+                                        from { transform: rotate(0deg); }
+                                        to { transform: rotate(360deg); }
+                                    }
+                                    .ai-spinning {
+                                        animation: ai-spin 1.5s linear infinite;
+                                    }
+                                `}</style>
+                                <RefreshCw size={14} className={aiLoading ? 'ai-spinning' : ''} />
+                            </button>
+                        </div>
+                        {aiLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ height: 35, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
+                                <div style={{ height: 35, width: '90%', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }} />
+                            </div>
+                        ) : renderedSuggestions.length === 0 ? (
+                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No suggestions at this moment. Daily objectives balanced.</p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {renderedSuggestions.map((suggestion) => (
+                                    <div key={suggestion.id} className={`alert-chip alert-chip-${suggestion.type}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                                            <span style={{ fontSize: 13 }}>{suggestion.msg}</span>
+                                        </div>
+                                        {suggestion.actionLabel && (
+                                            <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => handleSuggestionAction(suggestion)}>
+                                                {suggestion.actionLabel}
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {aiError && (
+                            <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 8 }}>{aiError}</div>
+                        )}
+                    </div>
+
+                    {/* Predictions Portal */}
+                    <div className="card" style={{ padding: 20 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                            <Award size={16} color="var(--accent-violet-light)" />
+                            <h4 style={{ fontWeight: 700, fontSize: 14 }}>Proactive Life Predictions</h4>
+                        </div>
+                        {aiLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ height: 20, width: '80%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
+                                <div style={{ height: 20, width: '85%', borderRadius: 6, background: 'rgba(255,255,255,0.02)' }} />
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {renderedPredictions.map((pred, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                                        background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10,
+                                        borderLeft: '3px solid var(--accent-violet)'
+                                    }}>
+                                        <Info size={14} style={{ color: 'var(--accent-violet)', marginTop: 2, flexShrink: 0 }} />
+                                        <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{pred}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Life Roadmap Milestones */}
+                    <div className="card" style={{ padding: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div>
+                                <h4 style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Target size={16} /> Life Roadmap Timeline
+                                </h4>
+                                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Visualize future milestones and prerequisites status</p>
+                            </div>
+                        </div>
+
+                        {/* Roadmap List styling */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingLeft: 10, position: 'relative' }}>
+                            {milestones.map((m, i) => {
+                                const symbol = {
+                                    done: { text: '✓', color: 'var(--accent-green)', bg: 'rgba(16, 185, 129, 0.1)', border: 'var(--accent-green)' },
+                                    progress: { text: '⚡', color: 'var(--accent-violet)', bg: 'rgba(124, 58, 237, 0.1)', border: 'var(--accent-violet)' },
+                                    pending: { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' },
+                                    locked: { text: '🔒', color: 'var(--accent-red)', bg: 'rgba(239, 68, 68, 0.1)', border: 'var(--accent-red)' },
+                                    future: { text: '⏰', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' }
+                                }[m.status as 'done' | 'progress' | 'pending' | 'locked' | 'future'] || { text: '✈', color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-soft)' };
+
+                                return (
+                                    <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'center', position: 'relative' }}>
+                                        {i < milestones.length - 1 && (
+                                            <div style={{
+                                                position: 'absolute', top: 32, left: 16, width: 2, height: 18,
+                                                background: 'var(--border-soft)'
+                                            }} />
+                                        )}
+                                        <div style={{
+                                            width: 32, height: 32, borderRadius: '50%',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            border: `1.5px solid ${symbol.border}`, background: symbol.bg,
+                                            fontWeight: 700, fontSize: 13, color: symbol.color, flexShrink: 0
+                                        }}>
+                                            {symbol.text}
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 700 }}>{m.label}</span>
+                                            <span style={{
+                                                fontSize: 9, textTransform: 'uppercase', color: symbol.color,
+                                                fontWeight: 800, marginLeft: 10, background: symbol.bg, padding: '2px 6px', borderRadius: 4
+                                            }}>{m.status}</span>
+                                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{m.desc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* Interactive Life Diary Modal */}
+            {showDiaryModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(8, 7, 18, 0.95)', backdropFilter: 'blur(20px)',
+                    zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    padding: 20
+                }}>
+                    <div className="card" style={{ width: '100%', maxWidth: 500, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--border-soft)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', background: 'var(--bg-primary)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-soft)', paddingBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 20 }}>📖</span>
+                                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Tonight's Life Diary</h3>
+                            </div>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setShowDiaryModal(false)} style={{ padding: 4, height: 'auto', minWidth: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', maxHeight: 420, paddingRight: 4 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-violet-light)', textTransform: 'uppercase' }}>📅 Timeline Events Today</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                    {todayEvents.length === 0 ? 'No events logged today.' : todayEvents.map(e => `• ${e.title} (${e.startDate.includes('T') ? e.startDate.split('T')[1].slice(0, 5) : 'All Day'})`).join('\n')}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-amber)', textTransform: 'uppercase' }}>🍲 Planned Meals</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                    {mealPlan.filter(m => m.date === todayVal).length === 0 ? 'No meals logged today.' : mealPlan.filter(m => m.date === todayVal).map(m => `• ${m.mealType}: ${m.customMeal || m.recipeName || 'Planned'}`).join('\n')}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-red)', textTransform: 'uppercase' }}>🏋️ Workout Records</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                    {workoutLogs.filter(w => w.date === todayVal).length === 0 ? 'No workout logged today.' : workoutLogs.filter(w => w.date === todayVal).map(w => `• Logged fitness session (${activeCaloriesBurned} kcal active burn boost)`).join('\n')}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-green)', textTransform: 'uppercase' }}>💳 Daily Expenses</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                    Tally: ₹{expenses.filter(e => e.date === todayVal).reduce((sum, e) => sum + e.amount, 0)} spent today.
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent-cyan)', textTransform: 'uppercase' }}>✍️ Quick Notes Inbox</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                    {notesContent.trim() ? notesContent.trim() : 'No pending notes.'}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase' }}>😊 Logged Mood</span>
+                                <div style={{ fontSize: 16, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-soft)', padding: 10, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    Today's Vibe: <strong>{dailyMood}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                            <button className="btn btn-primary" onClick={() => setShowDiaryModal(false)} style={{ padding: '8px 16px', fontSize: 12 }}>
+                                Close Diary
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

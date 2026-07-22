@@ -1,32 +1,76 @@
-# React + TypeScript + Vite
+# Life OS
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**An intelligent personal operating system for every aspect of your life.**
 
-Currently, two official plugins are available:
+> Not another productivity app. An operating system for life.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## What is Life OS?
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Life OS unifies Planning, Finance, Food, Health, Learning, Career, Documents, and Personal Knowledge into one connected ecosystem — powered by AI intelligence that feels invisible.
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Modules
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+| Module | Features |
+|--------|---------|
+| **Dashboard** | Mission, Life Pulse, Momentum, Coach Advice, Predictions, Daily Replay |
+| **Planner** | Tasks, Goals, Calendar, Events |
+| **Finance** | Income, Expenses, Budgets, Savings, Reports |
+| **Food** | Inventory, Recipes, Meal Planner, Shopping List, Nutrition |
+| **Health** | Workout, Body Metrics, Water, Sleep |
+| **Learning** | Topics, Study Sessions, Vocabulary, German Learning |
+| **Career** | Projects, Skills, Certificates, Job Applications |
+| **Documents** | Personal vault, Expiry tracking, File storage |
+| **Second Brain** | Notes, Ideas, Quick Capture *(coming soon)* |
+
+---
+
+## Tech Stack
+
+- **Frontend:** React 19 · TypeScript · Vite 8
+- **Styling:** TailwindCSS v4 · Custom CSS design system
+- **State:** Zustand (persisted to localStorage)
+- **Backend:** Supabase (Auth + PostgreSQL + RLS)
+- **ORM:** Drizzle ORM
+- **Charts:** Recharts
+- **AI:** Google Gemini
+
+---
+
+## Getting Started
+
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Requires a `.env` file with:
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+---
+
+## Documentation
+
+All project docs live in [`/docs`](./docs/README.md):
+
+| Doc | Purpose |
+|-----|---------|
+| [PROJECT_CONSTITUTION.md](./docs/PROJECT_CONSTITUTION.md) | ⭐ Vision, principles, version roadmap |
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Tech stack, data flow, SyncEngine |
+| [DATABASE.md](./docs/DATABASE.md) | All tables, columns, conventions |
+| [UI_GUIDELINES.md](./docs/UI_GUIDELINES.md) | Theme system, CSS tokens, components |
+| [AI_INSTRUCTIONS.md](./docs/AI_INSTRUCTIONS.md) | AI operating rules |
+| [PRODUCT_ROADMAP.md](./docs/PRODUCT_ROADMAP.md) | v1.0 → v2.0 delivery plan |
+| [FUTURE_IDEAS.md](./docs/FUTURE_IDEAS.md) | Ideas and explorations |
+
+---
+
+## Version
+
+**v1.0** — Single-user personal operating system *(Active Development)*
