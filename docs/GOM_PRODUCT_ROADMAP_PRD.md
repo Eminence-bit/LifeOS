@@ -1,6 +1,7 @@
-# GOM Product Roadmap PRD
+# Product Roadmap PRD (GOM)
 
-**Scope:** Overall GOM evolution (v1.0 → v3.0)
+**Product:** GOM  
+**Scope:** Overall product evolution (v1.0 → v3.0)
 
 ## Vision
 
