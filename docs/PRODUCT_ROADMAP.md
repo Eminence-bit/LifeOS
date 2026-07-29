@@ -1,54 +1,140 @@
-# Product Roadmap
+# GOM Product Roadmap PRD
 
-> This roadmap is derived from `PROJECT_CONSTITUTION.md §7`. It tracks the high-level delivery plan and platform evolution. 
-> For granular v1.0 requirements, refer to `RELEASE_CHECKLIST.md`.
+**Product:** GOM  
+**Scope:** Overall product evolution (v1.0 → v3.0)
 
----
+## Vision
 
-## v1.0 (Current) — Personal Operating System
-**Status:** 🟡 Active Development
-
-### ✅ Completed
-- [x] All 8 Core Modules Complete (Dashboard, Planner, Finance, Food, Health, Learning, Career, Documents)
-- [x] Sub-features Complete (Second Brain, Focus Mode)
-- [x] Architecture Complete (Zustand, SyncEngine, Drizzle ORM)
-
-### ⚪ Remaining
-- AI Integration (Ambient intelligence, Contextual Coach)
-- Tech Debt Resolution (Component splitting, Date handling)
-- Polish & Consistency
-- Testing (Lighthouse, Edge cases)
-- Performance & Routing optimizations
+GOM is an integrated life management platform. Each release expands the platform while keeping every module connected.
 
 ---
 
-## v1.1 — Quality of Life
-**Goal:** Make what exists feel exceptional. No new modules.
+## Version 1.0 — Core MVP
 
-- **Better Dashboard:** Improved layout options, configurable widgets.
-- **Better Reports:** Richer Finance and Health visualizations.
-- **Better Personalization:** Advanced theme handling, contextual modes.
-- **Better AI:** More data-driven and context-aware suggestions.
-- **Better UX:** Animations, page transitions, accessibility, keyboard nav.
+### Objective
+
+Build the first complete personal life management platform.
+
+### Planned Modules
+
+- Dashboard
+- Tasks & Projects
+- Goals
+- Calendar & Reminders
+- Notes
+- Finance
+- Inventory
+- Shopping Lists
+- Health
+- Food (basic recipe library + meal planner)
+- Documents
+- Settings
+
+### Food Module (Basic)
+
+- Create recipes
+- Store recipes
+- Basic meal planner
+- Basic nutrition
+- Basic inventory linkage
+
+**Outcome:** A complete single-user productivity platform.
 
 ---
 
-## v1.2 — Platform Preparation
-**Goal:** Stabilize internals for Version 2 expansion. No functional user-facing changes.
+## Version 2.0 — Shared Spaces
 
-- **Service Layer:** Extract logic into isolated domain services.
-- **Event Bus:** Internal event system for cross-module communication.
-- **Notifications:** Push and in-app notification center.
-- **Realtime:** Supabase realtime subscriptions for live multidimensional updates.
-- **Background Jobs:** Deferred heavy computations.
-- **Internal Cleanup:** Developer docs, cache strategies, query tuning.
+### Objective
+
+Enable collaboration.
+
+### Shared Spaces
+
+- Families
+- Roommates
+- Teams
+- Friends
+
+### Shared Features
+
+- Shared tasks
+- Shared shopping lists
+- Shared inventory
+- Shared finance
+- Shared meal planning
+- Shared calendar
+- Roles & permissions
+
+**Outcome:** GOM supports collaborative life management.
 
 ---
 
-## v2.0 — Shared Spaces
-**Goal:** Evolve from personal OS to collaborative household/team OS.
+## Version 3.0 — Intelligent Food Ecosystem
 
-- **Platform Evolution:** New top-level `Space` entity replacing `profile_id` anchor.
-- **Collaboration:** Member invitations, Roles & Permissions (Owner, Admin, Member, Viewer).
-- **Shared Entities:** Shared dashboards, split budgets, family meal schedules, collaborative pantries.
-- **Group Dynamics:** Chore assignment, recurring responsibilities, group voting on decisions.
+### Objective
+
+Transform the Food module into a fully integrated ecosystem.
+
+### Recipe Library
+
+Users enter:
+
+- Name
+- Ingredients
+- Steps
+- Optional photo
+- Optional servings
+
+### AI Metadata
+
+Suggests:
+
+- Cuisine
+- Dish type
+- Search tags
+- Pairings
+- Difficulty
+- Nutrition
+- Calories
+- Cooking time
+
+User can Accept, Edit, or Regenerate with feedback.
+
+### Smart Search
+
+Search by:
+
+- Ingredient
+- Cuisine
+- Dish type
+- Pairings
+- Meal type
+- Cooking time
+
+Examples:
+
+- Meat dishes
+- Potato dishes
+- Curries for rice
+- Vegetarian meals
+
+### Integration
+
+- Meal planner chooses saved recipes.
+- Inventory checks ingredient availability.
+- Missing ingredients go to shopping list.
+- Nutrition updates automatically.
+
+### Workflow
+
+Recipe → AI Metadata → Search → Meal Planner → Inventory → Shopping List → Nutrition
+
+**Outcome:** A connected food management ecosystem, not a standalone recipe app.
+
+---
+
+## Product Evolution
+
+- **v1.0:** Core personal management platform.
+- **v2.0:** Collaboration through Shared Spaces.
+- **v3.0:** Deep expansion of the Food module while remaining fully integrated with the rest of GOM.
